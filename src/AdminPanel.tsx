@@ -51,6 +51,7 @@ export default function AdminPanel() {
   const [apps, setApps] = useState<any[]>([]);
   const [accounts, setAccounts] = useState<any[]>([]);
   const [novels, setNovels] = useState<any[]>([]);
+  const [chapters, setChapters] = useState<any[]>([]);
   const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -72,7 +73,7 @@ export default function AdminPanel() {
   const [novelForm, setNovelForm] = useState({ title: '', description: '', cover_url: '', allowed_roles: ['normal', 'premium', 'plus', 'admin'] });
   const [productForm, setProductForm] = useState({ title: '', description: '', price: '', image_url: '' });
   const [chapterForm, setChapterForm] = useState({ novel_id: 0, title: '', order_index: 1, allowed_roles: ['normal', 'premium', 'plus', 'admin'] });
-  const [contentForm, setContentForm] = useState({ chapter_id: 0, type: 'text', content: '', order_index: 1 });
+  const [contentForm, setContentForm] = useState({ novel_id: 0, chapter_id: 0, type: 'text', content: '', order_index: 1 });
 
   useEffect(() => {
     fetchData();
@@ -119,7 +120,7 @@ export default function AdminPanel() {
       } else if (activeTab === 'stats') {
         const data = await safeFetch('/api/admin/stats');
         setStats(data);
-      } else if (activeTab === 'manage') {
+      } else if (activeTab === 'publish' || activeTab === 'manage') {
         const [g, a, acc, n, adData, p] = await Promise.all([
           safeFetch('/api/games'),
           safeFetch('/api/apps'),
@@ -142,6 +143,27 @@ export default function AdminPanel() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    const fetchChapters = async () => {
+      if (!token || contentForm.novel_id === 0) {
+        setChapters([]);
+        return;
+      }
+      try {
+        const res = await fetch(`/api/novels/${contentForm.novel_id}/chapters`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setChapters(data);
+        }
+      } catch (error) {
+        console.error('Error fetching chapters:', error);
+      }
+    };
+    fetchChapters();
+  }, [contentForm.novel_id, token]);
 
   const handleUpdateRole = async (userId: number, newRole: string) => {
     try {
@@ -327,7 +349,7 @@ export default function AdminPanel() {
       });
       if (res.ok) { 
         setNotification({ message: 'Contenido agregado', type: 'success' });
-        setContentForm({ ...contentForm, content: '' }); 
+        setContentForm({ ...contentForm, content: '', order_index: contentForm.order_index + 1 }); 
         fetchData();
       }
     } catch (error) { console.error(error); }
@@ -892,16 +914,25 @@ export default function AdminPanel() {
                 Agregar Contenido a Capítulo
               </h3>
               <form onSubmit={handlePublishContent} className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <select 
+                    className="w-full bg-white/5 border border-white/10 rounded-xl p-4 outline-none focus:border-blue-500"
+                    value={contentForm.novel_id}
+                    onChange={e => setContentForm({...contentForm, novel_id: parseInt(e.target.value), chapter_id: 0})}
+                    required
+                  >
+                    <option value={0}>Seleccionar Novela</option>
+                    {novels.map(n => <option key={n.id} value={n.id}>{n.title}</option>)}
+                  </select>
                   <select 
                     className="w-full bg-white/5 border border-white/10 rounded-xl p-4 outline-none focus:border-blue-500"
                     value={contentForm.chapter_id}
                     onChange={e => setContentForm({...contentForm, chapter_id: parseInt(e.target.value)})}
                     required
+                    disabled={contentForm.novel_id === 0}
                   >
                     <option value={0}>Seleccionar Capítulo</option>
-                    {/* This would ideally be filtered by novel, but for now showing all */}
-                    {/* We need to fetch chapters for manage tab too */}
+                    {chapters.map(c => <option key={c.id} value={c.id}>{c.title}</option>)}
                   </select>
                   <select 
                     className="w-full bg-white/5 border border-white/10 rounded-xl p-4 outline-none focus:border-blue-500"
@@ -914,17 +945,31 @@ export default function AdminPanel() {
                     <option value="video">Video (YouTube URL)</option>
                   </select>
                 </div>
-                <textarea 
-                  placeholder="Contenido..."
-                  className="w-full bg-white/5 border border-white/10 rounded-xl p-4 outline-none focus:border-blue-500 h-32"
-                  value={contentForm.content}
-                  onChange={e => setContentForm({...contentForm, content: e.target.value})}
-                  required
-                />
-                <button type="submit" className="w-full bg-blue-600/50 hover:bg-blue-500 text-white font-black py-4 rounded-xl transition-all flex items-center justify-center gap-2">
-                  <Plus size={20} />
-                  AGREGAR CONTENIDO
-                </button>
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                  <div className="md:col-span-3">
+                    <textarea 
+                      placeholder="Contenido..."
+                      className="w-full bg-white/5 border border-white/10 rounded-xl p-4 outline-none focus:border-blue-500 h-32"
+                      value={contentForm.content}
+                      onChange={e => setContentForm({...contentForm, content: e.target.value})}
+                      required
+                    />
+                  </div>
+                  <div className="flex flex-col gap-4">
+                    <input 
+                      type="number" 
+                      placeholder="Orden"
+                      className="w-full bg-white/5 border border-white/10 rounded-xl p-4 outline-none focus:border-blue-500"
+                      value={contentForm.order_index}
+                      onChange={e => setContentForm({...contentForm, order_index: parseInt(e.target.value)})}
+                      required
+                    />
+                    <button type="submit" className="w-full h-full bg-blue-600 hover:bg-blue-500 text-white font-black py-4 rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg shadow-blue-600/20">
+                      <Plus size={20} />
+                      AGREGAR
+                    </button>
+                  </div>
+                </div>
               </form>
             </div>
 
