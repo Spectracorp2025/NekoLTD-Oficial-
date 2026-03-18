@@ -6,10 +6,31 @@ export default function Support() {
   const { user } = useAuth();
   const [message, setMessage] = useState('');
 
-  const handleSend = (e: React.FormEvent) => {
+  const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
-    alert("Reporte enviado al administrador. Te contactaremos pronto.");
-    setMessage('');
+    const type = (e.target as any).elements[0].value;
+    
+    try {
+      const res = await fetch('/api/reports', {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({ type, message })
+      });
+      
+      if (res.ok) {
+        alert("Reporte enviado al administrador. Te contactaremos pronto.");
+        setMessage('');
+      } else {
+        const data = await res.json();
+        alert(data.error || "Error al enviar el reporte");
+      }
+    } catch (error) {
+      console.error('Error sending report:', error);
+      alert("Error de conexión al enviar el reporte");
+    }
   };
 
   return (

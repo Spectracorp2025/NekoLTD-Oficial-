@@ -80,7 +80,8 @@ export default function Chat() {
           },
           body: JSON.stringify({ 
             type: 'chat_report', 
-            message: `Reporte de mensaje (ID: ${msg.id}): ${reason}` 
+            message: `Reporte de mensaje (ID: ${msg.id}): ${reason}`,
+            target_id: msg.user_id
           })
         });
         alert('Reporte enviado');

@@ -28,7 +28,7 @@ export default function Auth() {
     const endpoint = isLogin ? '/api/auth/login' : '/api/auth/register';
     
     // Handle WhatsApp redirect for registration code
-    if (!isLogin && !formData.code) {
+    if (!isLogin && formData.role !== 'normal' && !formData.code) {
       const message = `Hola Administrador, solicito mi código de activación para registrarme en NEKO LTD.\nNombre: ${formData.name}\nEdad: ${formData.age}\nPaís: ${formData.country}\nTeléfono: ${formData.phone}\nRol solicitado: ${formData.role.toUpperCase()}`;
       window.open(`https://wa.me/573009555880?text=${encodeURIComponent(message)}`, '_blank');
       setLoading(false);
@@ -74,7 +74,7 @@ export default function Auth() {
           muted 
           loop 
           playsInline
-          className="w-full h-full object-cover opacity-40"
+          className="w-full h-full object-cover md:object-contain opacity-40"
           src="/video.mp4"
           onError={(e) => {
             (e.target as HTMLVideoElement).src = "https://assets.mixkit.co/videos/preview/mixkit-starry-night-sky-over-a-mountain-range-11044-large.mp4";

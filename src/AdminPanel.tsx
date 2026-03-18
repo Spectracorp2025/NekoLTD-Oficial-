@@ -56,6 +56,7 @@ export default function AdminPanel() {
   const [searchTerm, setSearchTerm] = useState('');
   const [confirmAction, setConfirmAction] = useState<{ type: string, id?: number, label: string } | null>(null);
   const [notification, setNotification] = useState<{ message: string, type: 'success' | 'error' } | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (notification) {
@@ -86,18 +87,27 @@ export default function AdminPanel() {
   const fetchData = async () => {
     if (!token) return;
     setLoading(true);
+    setError(null);
     try {
       const headers = { 'Authorization': `Bearer ${token}` };
       
       const safeFetch = async (url: string) => {
         const res = await fetch(url, { headers });
+        if (!res.ok) {
+          const contentType = res.headers.get("content-type");
+          if (contentType && contentType.includes("application/json")) {
+            const data = await res.json();
+            throw new Error(data.error || `Error ${res.status} en ${url}`);
+          }
+          const text = await res.text();
+          console.error(`Error response from ${url}:`, text);
+          throw new Error(`Error ${res.status} en ${url} (Respuesta no JSON)`);
+        }
         const contentType = res.headers.get("content-type");
         if (!contentType || !contentType.includes("application/json")) {
-          throw new Error(`Respuesta no válida de ${url}`);
+          throw new Error(`Respuesta no válida de ${url} (No es JSON)`);
         }
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || `Error en ${url}`);
-        return data;
+        return await res.json();
       };
 
       if (activeTab === 'users') {
@@ -127,7 +137,7 @@ export default function AdminPanel() {
       }
     } catch (error: any) {
       console.error('Error fetching admin data:', error);
-      // Optionally show a toast or alert
+      setError(error.message || 'Error al cargar los datos. Por favor, intenta de nuevo.');
     } finally {
       setLoading(false);
     }
@@ -488,6 +498,18 @@ export default function AdminPanel() {
           ))}
         </div>
       </div>
+
+      {error && (
+        <div className="mb-6 p-4 bg-red-500/20 border border-red-500/30 rounded-2xl text-red-400 flex items-center justify-between">
+          <p>{error}</p>
+          <button 
+            onClick={fetchData}
+            className="px-4 py-2 bg-red-500/20 hover:bg-red-500/30 rounded-xl transition-colors text-sm font-bold"
+          >
+            Reintentar
+          </button>
+        </div>
+      )}
 
       <AnimatePresence mode="wait">
         {activeTab === 'users' && (

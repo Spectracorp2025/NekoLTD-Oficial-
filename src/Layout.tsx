@@ -96,7 +96,7 @@ export default function Layout({ children, activeSection, onSectionChange }: {
           muted 
           loop 
           playsInline
-          className="w-full h-full object-cover opacity-40"
+          className="w-full h-full object-cover md:object-contain opacity-40"
           src="/video.mp4"
           onError={(e) => {
             // Fallback if local file is missing
