@@ -25,6 +25,8 @@ export interface ForumPost {
   content: string;
   created_at: string;
   comment_count: number;
+  like_count: number;
+  user_liked: boolean;
 }
 
 export interface Ad {
