@@ -32,7 +32,16 @@ const pool = new Pool({
   connectionString: process.env.DATABASE_URL || "postgresql://postgres.xqsynxmznrlybdjpiolt:bZL9WfKE27Fe3CcF@aws-1-us-east-2.pooler.supabase.com:6543/postgres",
 });
 
+pool.on('error', (err) => {
+  console.error('Unexpected error on idle client', err);
+});
+
 const JWT_SECRET = process.env.JWT_SECRET || "neko_ltd_secret_key_2026";
+
+// Async wrapper to catch errors
+const catchAsync = (fn: Function) => (req: Request, res: Response, next: NextFunction) => {
+  Promise.resolve(fn(req, res, next)).catch(next);
+};
 
 async function initDb() {
   try {
@@ -69,6 +78,9 @@ async function initDb() {
 
       -- Ensure no foreign key constraint exists on forums.user_id to allow virtual admin (ID 0)
       ALTER TABLE forums DROP CONSTRAINT IF EXISTS forums_user_id_fkey;
+
+      -- Ensure no foreign key constraint exists on reports.user_id to allow virtual admin (ID 0)
+      ALTER TABLE reports DROP CONSTRAINT IF EXISTS reports_user_id_fkey;
 
       CREATE TABLE IF NOT EXISTS ads (
         id SERIAL PRIMARY KEY,
@@ -147,11 +159,20 @@ async function initDb() {
       CREATE TABLE IF NOT EXISTS reports (
         id SERIAL PRIMARY KEY,
         user_id INTEGER,
+        target_id INTEGER,
         type TEXT NOT NULL,
         message TEXT NOT NULL,
         status TEXT DEFAULT 'pending',
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
+
+      -- Ensure target_id exists in reports table
+      DO $$ 
+      BEGIN 
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='reports' AND column_name='target_id') THEN
+          ALTER TABLE reports ADD COLUMN target_id INTEGER;
+        END IF;
+      END $$;
 
       CREATE TABLE IF NOT EXISTS admin_logs (
         id SERIAL PRIMARY KEY,
@@ -160,6 +181,9 @@ async function initDb() {
         details TEXT,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
+
+      -- Ensure no foreign key constraint exists on admin_logs.admin_id to allow virtual admin (ID 0)
+      ALTER TABLE admin_logs DROP CONSTRAINT IF EXISTS admin_logs_admin_id_fkey;
 
       -- Schema updates for existing tables
       ALTER TABLE games ADD COLUMN IF NOT EXISTS thumbnail_url TEXT;
@@ -211,6 +235,16 @@ async function startServer() {
 
   app.use(express.json());
 
+  // Health check
+  app.get("/api/health", async (req, res) => {
+    try {
+      await pool.query("SELECT 1");
+      res.json({ status: "ok", db: "connected" });
+    } catch (err: any) {
+      res.status(500).json({ status: "error", db: err.message });
+    }
+  });
+
   // Auth Middleware
   const authenticateToken = (req: any, res: any, next: any) => {
     const authHeader = req.headers['authorization'];
@@ -225,30 +259,29 @@ async function startServer() {
   };
 
   // API Routes
-  app.post("/api/auth/register", async (req, res) => {
+  app.post("/api/auth/register", catchAsync(async (req: Request, res: Response) => {
     const { name, age, country, phone, password, role, code } = req.body;
     
+    // Only require code for non-normal roles
     if (role === 'premium' && code !== '15108') {
       return res.status(400).json({ error: "Código Premium inválido" });
     }
     if (role === 'plus' && code !== '1052023') {
       return res.status(400).json({ error: "Código Plus inválido" });
     }
-
-    try {
-      const hashedPassword = await bcrypt.hash(password, 10);
-      const result = await pool.query(
-        "INSERT INTO users (name, age, country, phone, password, role) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id, name, role",
-        [name, age, country, phone, hashedPassword, role || 'normal']
-      );
-      res.json(result.rows[0]);
-    } catch (err: any) {
-      if (err.code === '23505') return res.status(400).json({ error: "El teléfono ya está registrado" });
-      res.status(500).json({ error: err.message });
+    if (role === 'admin' && code !== 'nekoadmin2026') {
+      return res.status(400).json({ error: "Código Admin inválido" });
     }
-  });
 
-  app.post("/api/auth/login", async (req, res) => {
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const result = await pool.query(
+      "INSERT INTO users (name, age, country, phone, password, role) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id, name, role",
+      [name, age, country, phone, hashedPassword, role || 'normal']
+    );
+    res.json(result.rows[0]);
+  }));
+
+  app.post("/api/auth/login", catchAsync(async (req: Request, res: Response) => {
     const { phone, password } = req.body;
     
     if (phone === 'Fumiko' && password === 'fumiko121508') {
@@ -256,30 +289,26 @@ async function startServer() {
       return res.json({ token, user: { id: 0, name: 'Fumiko', role: 'admin' } });
     }
 
-    try {
-      const result = await pool.query("SELECT * FROM users WHERE phone = $1", [phone]);
-      const user = result.rows[0];
-      if (!user) return res.status(400).json({ error: "Usuario no encontrado" });
-      if (user.status === 'banned') return res.status(403).json({ error: "Tu cuenta ha sido suspendida permanentemente." });
+    const result = await pool.query("SELECT * FROM users WHERE phone = $1", [phone]);
+    const user = result.rows[0];
+    if (!user) return res.status(400).json({ error: "Usuario no encontrado" });
+    if (user.status === 'banned') return res.status(403).json({ error: "Tu cuenta ha sido suspendida permanentemente." });
 
-      const validPassword = await bcrypt.compare(password, user.password);
-      if (!validPassword) return res.status(400).json({ error: "Contraseña incorrecta" });
+    const validPassword = await bcrypt.compare(password, user.password);
+    if (!validPassword) return res.status(400).json({ error: "Contraseña incorrecta" });
 
-      const token = jwt.sign({ id: user.id, name: user.name, role: user.role }, JWT_SECRET);
-      res.json({ token, user: { id: user.id, name: user.name, role: user.role } });
-    } catch (err: any) {
-      res.status(500).json({ error: err.message });
-    }
-  });
+    const token = jwt.sign({ id: user.id, name: user.name, role: user.role }, JWT_SECRET);
+    res.json({ token, user: { id: user.id, name: user.name, role: user.role } });
+  }));
 
-  app.get("/api/me", authenticateToken, async (req: any, res) => {
+  app.get("/api/me", authenticateToken, catchAsync(async (req: any, res: Response) => {
     if (req.user.id === 0) return res.json(req.user);
     const result = await pool.query("SELECT id, name, role, phone, country, age, status FROM users WHERE id = $1", [req.user.id]);
     res.json(result.rows[0]);
-  });
+  }));
 
   // Chat
-  app.get("/api/chat", authenticateToken, async (req, res) => {
+  app.get("/api/chat", authenticateToken, catchAsync(async (req: Request, res: Response) => {
     const result = await pool.query(`
       SELECT c.*, 
         CASE WHEN c.user_id = 0 THEN 'Fumiko' ELSE u.name END as user_name,
@@ -289,10 +318,10 @@ async function startServer() {
       ORDER BY c.created_at ASC
     `);
     res.json(result.rows);
-  });
+  }));
 
   // Forums
-  app.get("/api/forums", authenticateToken, async (req, res) => {
+  app.get("/api/forums", authenticateToken, catchAsync(async (req: Request, res: Response) => {
     const result = await pool.query(`
       SELECT f.*, u.name as user_name, u.role as user_role,
       (SELECT count(*) FROM forum_comments WHERE forum_id = f.id) as comment_count
@@ -301,26 +330,27 @@ async function startServer() {
       ORDER BY f.created_at DESC
     `);
     res.json(result.rows);
-  });
+  }));
 
-  app.post("/api/forums", authenticateToken, async (req: any, res) => {
+  app.post("/api/forums", authenticateToken, catchAsync(async (req: any, res: Response) => {
     const { title, content } = req.body;
     const result = await pool.query(
       "INSERT INTO forums (user_id, title, content) VALUES ($1, $2, $3) RETURNING *",
       [req.user.id, title, content]
     );
     res.json(result.rows[0]);
-  });
+  }));
 
   // Reports
-  app.post("/api/reports", authenticateToken, async (req: any, res) => {
-    const { type, message } = req.body;
+  app.post("/api/reports", authenticateToken, catchAsync(async (req: any, res: Response) => {
+    const { type, message, target_id } = req.body;
+    console.log(`Creating report from user ${req.user.id}: type=${type}, target=${target_id}`);
     await pool.query(
-      "INSERT INTO reports (user_id, type, message) VALUES ($1, $2, $3)",
-      [req.user.id, type, message]
+      "INSERT INTO reports (user_id, type, message, target_id) VALUES ($1, $2, $3, $4)",
+      [req.user.id, type, message, target_id || null]
     );
     res.json({ success: true });
-  });
+  }));
 
   // Admin Routes
   const isAdmin = (req: any, res: any, next: any) => {
@@ -328,61 +358,49 @@ async function startServer() {
     next();
   };
 
-  app.get("/api/admin/users", authenticateToken, isAdmin, async (req, res) => {
+  app.get("/api/admin/users", authenticateToken, isAdmin, catchAsync(async (req: Request, res: Response) => {
     const result = await pool.query("SELECT id, name, role, phone, country, age, status, created_at FROM users ORDER BY created_at DESC");
     res.json(result.rows);
-  });
+  }));
 
-  app.post("/api/admin/users/:id/role", authenticateToken, isAdmin, async (req: any, res) => {
+  app.post("/api/admin/users/:id/role", authenticateToken, isAdmin, catchAsync(async (req: any, res: Response) => {
     const { role } = req.body;
     await pool.query("UPDATE users SET role = $1 WHERE id = $2", [role, req.params.id]);
     await pool.query("INSERT INTO admin_logs (admin_id, action, details) VALUES ($1, $2, $3)", 
       [req.user.id, 'update_role', `Changed user ${req.params.id} role to ${role}`]);
     res.json({ success: true });
-  });
+  }));
 
-  app.post("/api/admin/users/:id/status", authenticateToken, isAdmin, async (req: any, res) => {
+  app.post("/api/admin/users/:id/status", authenticateToken, isAdmin, catchAsync(async (req: any, res: Response) => {
     const { status } = req.body;
     await pool.query("UPDATE users SET status = $1 WHERE id = $2", [status, req.params.id]);
     await pool.query("INSERT INTO admin_logs (admin_id, action, details) VALUES ($1, $2, $3)", 
       [req.user.id, 'update_status', `Changed user ${req.params.id} status to ${status}`]);
     res.json({ success: true });
-  });
+  }));
 
-  app.get("/api/admin/reports", authenticateToken, isAdmin, async (req, res) => {
-    try {
-      const result = await pool.query(`
-        SELECT r.*, u1.name as reporter_name, u2.name as target_name
-        FROM reports r 
-        LEFT JOIN users u1 ON r.user_id = u1.id 
-        LEFT JOIN users u2 ON r.target_id = u2.id
-        ORDER BY r.created_at DESC
-      `);
-      res.json(result.rows);
-    } catch (err: any) {
-      res.status(500).json({ error: err.message });
-    }
-  });
+  app.get("/api/admin/reports", authenticateToken, isAdmin, catchAsync(async (req: Request, res: Response) => {
+    const result = await pool.query(`
+      SELECT r.*, u1.name as reporter_name, u2.name as target_name
+      FROM reports r 
+      LEFT JOIN users u1 ON r.user_id = u1.id 
+      LEFT JOIN users u2 ON r.target_id = u2.id
+      ORDER BY r.created_at DESC
+    `);
+    res.json(result.rows);
+  }));
 
-  app.post("/api/admin/reports/:id/resolve", authenticateToken, isAdmin, async (req, res) => {
-    try {
-      await pool.query("UPDATE reports SET status = 'resolved' WHERE id = $1", [req.params.id]);
-      res.json({ success: true });
-    } catch (err: any) {
-      res.status(500).json({ error: err.message });
-    }
-  });
+  app.post("/api/admin/reports/:id/resolve", authenticateToken, isAdmin, catchAsync(async (req: Request, res: Response) => {
+    await pool.query("UPDATE reports SET status = 'resolved' WHERE id = $1", [req.params.id]);
+    res.json({ success: true });
+  }));
 
-  app.delete("/api/admin/reports/:id", authenticateToken, isAdmin, async (req, res) => {
-    try {
-      await pool.query("DELETE FROM reports WHERE id = $1", [req.params.id]);
-      res.json({ success: true });
-    } catch (err: any) {
-      res.status(500).json({ error: err.message });
-    }
-  });
+  app.delete("/api/admin/reports/:id", authenticateToken, isAdmin, catchAsync(async (req: Request, res: Response) => {
+    await pool.query("DELETE FROM reports WHERE id = $1", [req.params.id]);
+    res.json({ success: true });
+  }));
 
-  app.get("/api/admin/stats", authenticateToken, isAdmin, async (req, res) => {
+  app.get("/api/admin/stats", authenticateToken, isAdmin, catchAsync(async (req: Request, res: Response) => {
     const usersCount = await pool.query("SELECT count(*) FROM users");
     const premiumCount = await pool.query("SELECT count(*) FROM users WHERE role = 'premium'");
     const plusCount = await pool.query("SELECT count(*) FROM users WHERE role = 'plus'");
@@ -398,7 +416,7 @@ async function startServer() {
       totalReports: parseInt(reportsCount.rows[0].count),
       pendingReports: parseInt(pendingReports.rows[0].count)
     });
-  });
+  }));
 
   app.post("/api/admin/chat/clear", authenticateToken, isAdmin, async (req: any, res) => {
     console.log(`Admin ${req.user.id} clearing chat`);
@@ -409,221 +427,161 @@ async function startServer() {
     res.json({ success: true });
   });
 
-  app.post("/api/admin/ads", authenticateToken, isAdmin, async (req, res) => {
+  app.post("/api/admin/ads", authenticateToken, isAdmin, catchAsync(async (req: Request, res: Response) => {
     const { title, content, media_url, media_type } = req.body;
     const result = await pool.query(
       "INSERT INTO ads (title, content, media_url, media_type) VALUES ($1, $2, $3, $4) RETURNING *",
       [title, content, media_url, media_type]
     );
     res.json(result.rows[0]);
-  });
+  }));
 
-  app.delete("/api/admin/ads/:id", authenticateToken, isAdmin, async (req, res) => {
-    try {
-      const { id } = req.params;
-      console.log(`Admin ${req.user.id} deleting ad ${id}`);
-      await pool.query("DELETE FROM ads WHERE id = $1", [id]);
-      res.json({ success: true });
-    } catch (err: any) {
-      console.error("Error deleting ad:", err);
-      res.status(500).json({ error: err.message });
-    }
-  });
+  app.delete("/api/admin/ads/:id", authenticateToken, isAdmin, catchAsync(async (req: any, res: Response) => {
+    const { id } = req.params;
+    console.log(`Admin ${req.user.id} deleting ad ${id}`);
+    await pool.query("DELETE FROM ads WHERE id = $1", [id]);
+    res.json({ success: true });
+  }));
 
-  app.get("/api/ads", authenticateToken, async (req, res) => {
+  app.get("/api/ads", authenticateToken, catchAsync(async (req: Request, res: Response) => {
     const result = await pool.query("SELECT * FROM ads ORDER BY created_at DESC");
     res.json(result.rows);
-  });
+  }));
 
   // Content Routes
-  app.get("/api/games", authenticateToken, async (req, res) => {
-    try {
-      const result = await pool.query("SELECT * FROM games ORDER BY created_at DESC");
-      res.json(result.rows);
-    } catch (err: any) {
-      console.error("Error fetching games:", err);
-      res.status(500).json({ error: err.message });
-    }
-  });
+  app.get("/api/games", authenticateToken, catchAsync(async (req: Request, res: Response) => {
+    const result = await pool.query("SELECT * FROM games ORDER BY created_at DESC");
+    res.json(result.rows);
+  }));
 
-  app.get("/api/apps", authenticateToken, async (req, res) => {
-    try {
-      const result = await pool.query("SELECT * FROM apps ORDER BY created_at DESC");
-      res.json(result.rows);
-    } catch (err: any) {
-      console.error("Error fetching apps:", err);
-      res.status(500).json({ error: err.message });
-    }
-  });
+  app.get("/api/apps", authenticateToken, catchAsync(async (req: Request, res: Response) => {
+    const result = await pool.query("SELECT * FROM apps ORDER BY created_at DESC");
+    res.json(result.rows);
+  }));
 
-  app.get("/api/accounts", authenticateToken, async (req, res) => {
-    try {
-      const result = await pool.query("SELECT * FROM accounts ORDER BY created_at DESC");
-      res.json(result.rows);
-    } catch (err: any) {
-      console.error("Error fetching accounts:", err);
-      res.status(500).json({ error: err.message });
-    }
-  });
+  app.get("/api/accounts", authenticateToken, catchAsync(async (req: Request, res: Response) => {
+    const result = await pool.query("SELECT * FROM accounts ORDER BY created_at DESC");
+    res.json(result.rows);
+  }));
 
-  app.get("/api/novels", authenticateToken, async (req, res) => {
-    try {
-      const result = await pool.query("SELECT * FROM novels ORDER BY created_at DESC");
-      res.json(result.rows);
-    } catch (err: any) {
-      console.error("Error fetching novels:", err);
-      res.status(500).json({ error: err.message });
-    }
-  });
+  app.get("/api/novels", authenticateToken, catchAsync(async (req: Request, res: Response) => {
+    const result = await pool.query("SELECT * FROM novels ORDER BY created_at DESC");
+    res.json(result.rows);
+  }));
 
-  app.get("/api/products", authenticateToken, async (req, res) => {
-    try {
-      const result = await pool.query("SELECT * FROM products ORDER BY created_at DESC");
-      res.json(result.rows);
-    } catch (err: any) {
-      console.error("Error fetching products:", err);
-      res.status(500).json({ error: err.message });
-    }
-  });
+  app.get("/api/products", authenticateToken, catchAsync(async (req: Request, res: Response) => {
+    const result = await pool.query("SELECT * FROM products ORDER BY created_at DESC");
+    res.json(result.rows);
+  }));
 
-  app.get("/api/novels/:id/chapters", authenticateToken, async (req, res) => {
+  app.get("/api/novels/:id/chapters", authenticateToken, catchAsync(async (req: Request, res: Response) => {
     const result = await pool.query("SELECT * FROM novel_chapters WHERE novel_id = $1 ORDER BY order_index ASC", [req.params.id]);
     res.json(result.rows);
-  });
+  }));
 
-  app.get("/api/chapters/:id/content", authenticateToken, async (req, res) => {
+  app.get("/api/chapters/:id/content", authenticateToken, catchAsync(async (req: Request, res: Response) => {
     const result = await pool.query("SELECT * FROM novel_content WHERE chapter_id = $1 ORDER BY order_index ASC", [req.params.id]);
     res.json(result.rows);
-  });
+  }));
 
   // Admin Content Management
-  app.post("/api/admin/games", authenticateToken, isAdmin, async (req, res) => {
+  app.post("/api/admin/games", authenticateToken, isAdmin, catchAsync(async (req: Request, res: Response) => {
     const { title, description, url, thumbnail_url, category, allowed_roles } = req.body;
     const result = await pool.query(
       "INSERT INTO games (title, description, url, thumbnail_url, category, allowed_roles) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *",
       [title, description, url, thumbnail_url, category || 'juegos', allowed_roles || ['normal', 'premium', 'plus', 'admin']]
     );
     res.json(result.rows[0]);
-  });
+  }));
 
-  app.delete("/api/admin/games/:id", authenticateToken, isAdmin, async (req, res) => {
-    try {
-      const { id } = req.params;
-      console.log(`Admin ${req.user.id} deleting game ${id}`);
-      await pool.query("DELETE FROM games WHERE id = $1", [id]);
-      res.json({ success: true });
-    } catch (err: any) {
-      console.error("Error deleting game:", err);
-      res.status(500).json({ error: err.message });
-    }
-  });
+  app.delete("/api/admin/games/:id", authenticateToken, isAdmin, catchAsync(async (req: any, res: Response) => {
+    const { id } = req.params;
+    console.log(`Admin ${req.user.id} deleting game ${id}`);
+    await pool.query("DELETE FROM games WHERE id = $1", [id]);
+    res.json({ success: true });
+  }));
 
-  app.post("/api/admin/apps", authenticateToken, isAdmin, async (req, res) => {
+  app.post("/api/admin/apps", authenticateToken, isAdmin, catchAsync(async (req: Request, res: Response) => {
     const { title, description, url, thumbnail_url, allowed_roles } = req.body;
     const result = await pool.query(
       "INSERT INTO apps (title, description, url, thumbnail_url, allowed_roles) VALUES ($1, $2, $3, $4, $5) RETURNING *",
       [title, description, url, thumbnail_url, allowed_roles || ['normal', 'premium', 'plus', 'admin']]
     );
     res.json(result.rows[0]);
-  });
+  }));
 
-  app.delete("/api/admin/apps/:id", authenticateToken, isAdmin, async (req, res) => {
-    try {
-      const { id } = req.params;
-      console.log(`Admin ${req.user.id} deleting app ${id}`);
-      await pool.query("DELETE FROM apps WHERE id = $1", [id]);
-      res.json({ success: true });
-    } catch (err: any) {
-      console.error("Error deleting app:", err);
-      res.status(500).json({ error: err.message });
-    }
-  });
+  app.delete("/api/admin/apps/:id", authenticateToken, isAdmin, catchAsync(async (req: any, res: Response) => {
+    const { id } = req.params;
+    console.log(`Admin ${req.user.id} deleting app ${id}`);
+    await pool.query("DELETE FROM apps WHERE id = $1", [id]);
+    res.json({ success: true });
+  }));
 
-  app.post("/api/admin/accounts", authenticateToken, isAdmin, async (req, res) => {
+  app.post("/api/admin/accounts", authenticateToken, isAdmin, catchAsync(async (req: Request, res: Response) => {
     const { title, description, details, allowed_roles } = req.body;
     const result = await pool.query(
       "INSERT INTO accounts (title, description, details, allowed_roles) VALUES ($1, $2, $3, $4) RETURNING *",
       [title, description, details, allowed_roles || ['normal', 'premium', 'plus', 'admin']]
     );
     res.json(result.rows[0]);
-  });
+  }));
 
-  app.delete("/api/admin/accounts/:id", authenticateToken, isAdmin, async (req, res) => {
-    try {
-      const { id } = req.params;
-      console.log(`Admin ${req.user.id} deleting account ${id}`);
-      await pool.query("DELETE FROM accounts WHERE id = $1", [id]);
-      res.json({ success: true });
-    } catch (err: any) {
-      console.error("Error deleting account:", err);
-      res.status(500).json({ error: err.message });
-    }
-  });
+  app.delete("/api/admin/accounts/:id", authenticateToken, isAdmin, catchAsync(async (req: any, res: Response) => {
+    const { id } = req.params;
+    console.log(`Admin ${req.user.id} deleting account ${id}`);
+    await pool.query("DELETE FROM accounts WHERE id = $1", [id]);
+    res.json({ success: true });
+  }));
 
-  app.post("/api/admin/novels", authenticateToken, isAdmin, async (req, res) => {
+  app.post("/api/admin/novels", authenticateToken, isAdmin, catchAsync(async (req: Request, res: Response) => {
     const { title, description, cover_url, allowed_roles } = req.body;
     const result = await pool.query(
       "INSERT INTO novels (title, description, cover_url, allowed_roles) VALUES ($1, $2, $3, $4) RETURNING *",
       [title, description, cover_url, allowed_roles || ['normal', 'premium', 'plus', 'admin']]
     );
     res.json(result.rows[0]);
-  });
+  }));
 
-  app.post("/api/admin/novels/:id/chapters", authenticateToken, isAdmin, async (req, res) => {
+  app.post("/api/admin/novels/:id/chapters", authenticateToken, isAdmin, catchAsync(async (req: Request, res: Response) => {
     const { title, order_index, allowed_roles } = req.body;
     const result = await pool.query(
       "INSERT INTO novel_chapters (novel_id, title, order_index, allowed_roles) VALUES ($1, $2, $3, $4) RETURNING *",
       [req.params.id, title, order_index, allowed_roles || ['normal', 'premium', 'plus', 'admin']]
     );
     res.json(result.rows[0]);
-  });
+  }));
 
-  app.post("/api/admin/chapters/:id/content", authenticateToken, isAdmin, async (req, res) => {
+  app.post("/api/admin/chapters/:id/content", authenticateToken, isAdmin, catchAsync(async (req: Request, res: Response) => {
     const { type, content, order_index } = req.body;
     const result = await pool.query(
       "INSERT INTO novel_content (chapter_id, type, content, order_index) VALUES ($1, $2, $3, $4) RETURNING *",
       [req.params.id, type, content, order_index]
     );
     res.json(result.rows[0]);
-  });
+  }));
 
-  app.delete("/api/admin/novels/:id", authenticateToken, isAdmin, async (req, res) => {
-    try {
-      const { id } = req.params;
-      console.log(`Admin ${req.user.id} deleting novel ${id}`);
-      await pool.query("DELETE FROM novels WHERE id = $1", [id]);
-      res.json({ success: true });
-    } catch (err: any) {
-      console.error("Error deleting novel:", err);
-      res.status(500).json({ error: err.message });
-    }
-  });
+  app.delete("/api/admin/novels/:id", authenticateToken, isAdmin, catchAsync(async (req: any, res: Response) => {
+    const { id } = req.params;
+    console.log(`Admin ${req.user.id} deleting novel ${id}`);
+    await pool.query("DELETE FROM novels WHERE id = $1", [id]);
+    res.json({ success: true });
+  }));
 
-  app.post("/api/admin/products", authenticateToken, isAdmin, async (req, res) => {
-    try {
-      const { title, description, price, image_url } = req.body;
-      const result = await pool.query(
-        "INSERT INTO products (title, description, price, image_url) VALUES ($1, $2, $3, $4) RETURNING *",
-        [title, description, price, image_url]
-      );
-      res.json(result.rows[0]);
-    } catch (err: any) {
-      console.error("Error creating product:", err);
-      res.status(500).json({ error: err.message });
-    }
-  });
+  app.post("/api/admin/products", authenticateToken, isAdmin, catchAsync(async (req: Request, res: Response) => {
+    const { title, description, price, image_url } = req.body;
+    const result = await pool.query(
+      "INSERT INTO products (title, description, price, image_url) VALUES ($1, $2, $3, $4) RETURNING *",
+      [title, description, price, image_url]
+    );
+    res.json(result.rows[0]);
+  }));
 
-  app.delete("/api/admin/products/:id", authenticateToken, isAdmin, async (req, res) => {
-    try {
-      const { id } = req.params;
-      console.log(`Admin ${req.user.id} deleting product ${id}`);
-      await pool.query("DELETE FROM products WHERE id = $1", [id]);
-      res.json({ success: true });
-    } catch (err: any) {
-      console.error("Error deleting product:", err);
-      res.status(500).json({ error: err.message });
-    }
-  });
+  app.delete("/api/admin/products/:id", authenticateToken, isAdmin, catchAsync(async (req: any, res: Response) => {
+    const { id } = req.params;
+    console.log(`Admin ${req.user.id} deleting product ${id}`);
+    await pool.query("DELETE FROM products WHERE id = $1", [id]);
+    res.json({ success: true });
+  }));
 
   // Socket.io for Chat
   io.on("connection", (socket) => {
@@ -694,6 +652,12 @@ async function startServer() {
       res.sendFile(path.join(distPath, 'index.html'));
     });
   }
+
+  // Global Error Handler
+  app.use((err: any, req: Request, res: Response, next: NextFunction) => {
+    console.error("Unhandled Error:", err);
+    res.status(500).json({ error: err.message || "Internal Server Error" });
+  });
 
   const PORT = 3000;
   httpServer.listen(PORT, "0.0.0.0", () => {
