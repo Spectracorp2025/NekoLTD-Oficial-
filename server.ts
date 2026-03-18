@@ -79,6 +79,24 @@ async function initDb() {
       -- Ensure no foreign key constraint exists on forums.user_id to allow virtual admin (ID 0)
       ALTER TABLE forums DROP CONSTRAINT IF EXISTS forums_user_id_fkey;
 
+      CREATE TABLE IF NOT EXISTS forum_comments (
+        id SERIAL PRIMARY KEY,
+        forum_id INTEGER REFERENCES forums(id) ON DELETE CASCADE,
+        user_id INTEGER,
+        content TEXT NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+      ALTER TABLE forum_comments DROP CONSTRAINT IF EXISTS forum_comments_user_id_fkey;
+
+      CREATE TABLE IF NOT EXISTS forum_likes (
+        id SERIAL PRIMARY KEY,
+        forum_id INTEGER REFERENCES forums(id) ON DELETE CASCADE,
+        user_id INTEGER,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(forum_id, user_id)
+      );
+      ALTER TABLE forum_likes DROP CONSTRAINT IF EXISTS forum_likes_user_id_fkey;
+
       -- Ensure no foreign key constraint exists on reports.user_id to allow virtual admin (ID 0)
       ALTER TABLE reports DROP CONSTRAINT IF EXISTS reports_user_id_fkey;
 
@@ -258,6 +276,11 @@ async function startServer() {
     });
   };
 
+  const isAdmin = (req: any, res: any, next: any) => {
+    if (req.user.role !== 'admin') return res.status(403).json({ error: "Forbidden" });
+    next();
+  };
+
   // API Routes
   app.post("/api/auth/register", catchAsync(async (req: Request, res: Response) => {
     const { name, age, country, phone, password, role, code } = req.body;
@@ -323,13 +346,50 @@ async function startServer() {
   // Forums
   app.get("/api/forums", authenticateToken, catchAsync(async (req: Request, res: Response) => {
     const result = await pool.query(`
-      SELECT f.*, u.name as user_name, u.role as user_role,
-      (SELECT count(*) FROM forum_comments WHERE forum_id = f.id) as comment_count
+      SELECT f.*, 
+        CASE WHEN f.user_id = 0 THEN 'Fumiko' ELSE u.name END as user_name,
+        CASE WHEN f.user_id = 0 THEN 'admin' ELSE u.role END as user_role,
+        (SELECT count(*) FROM forum_comments WHERE forum_id = f.id) as comment_count,
+        (SELECT count(*) FROM forum_likes WHERE forum_id = f.id) as like_count,
+        EXISTS(SELECT 1 FROM forum_likes WHERE forum_id = f.id AND user_id = $1) as user_liked
       FROM forums f
-      JOIN users u ON f.user_id = u.id
+      LEFT JOIN users u ON f.user_id = u.id
       ORDER BY f.created_at DESC
-    `);
+    `, [req.user?.id]);
     res.json(result.rows);
+  }));
+
+  app.get("/api/forums/:id", authenticateToken, catchAsync(async (req: Request, res: Response) => {
+    const { id } = req.params;
+    const forumResult = await pool.query(`
+      SELECT f.*, 
+        CASE WHEN f.user_id = 0 THEN 'Fumiko' ELSE u.name END as user_name,
+        CASE WHEN f.user_id = 0 THEN 'admin' ELSE u.role END as user_role,
+        (SELECT count(*) FROM forum_likes WHERE forum_id = f.id) as like_count,
+        EXISTS(SELECT 1 FROM forum_likes WHERE forum_id = f.id AND user_id = $2) as user_liked
+      FROM forums f
+      LEFT JOIN users u ON f.user_id = u.id
+      WHERE f.id = $1
+    `, [id, req.user?.id]);
+
+    if (forumResult.rows.length === 0) {
+      return res.status(404).json({ error: "Forum post not found" });
+    }
+
+    const commentsResult = await pool.query(`
+      SELECT c.*, 
+        CASE WHEN c.user_id = 0 THEN 'Fumiko' ELSE u.name END as user_name,
+        CASE WHEN c.user_id = 0 THEN 'admin' ELSE u.role END as user_role
+      FROM forum_comments c
+      LEFT JOIN users u ON c.user_id = u.id
+      WHERE c.forum_id = $1
+      ORDER BY c.created_at ASC
+    `, [id]);
+
+    res.json({
+      ...forumResult.rows[0],
+      comments: commentsResult.rows
+    });
   }));
 
   app.post("/api/forums", authenticateToken, catchAsync(async (req: any, res: Response) => {
@@ -339,6 +399,48 @@ async function startServer() {
       [req.user.id, title, content]
     );
     res.json(result.rows[0]);
+  }));
+
+  app.post("/api/forums/:id/like", authenticateToken, catchAsync(async (req: any, res: Response) => {
+    const { id } = req.params;
+    const userId = req.user.id;
+    
+    // Check if already liked
+    const check = await pool.query("SELECT * FROM forum_likes WHERE forum_id = $1 AND user_id = $2", [id, userId]);
+    
+    if (check.rows.length > 0) {
+      await pool.query("DELETE FROM forum_likes WHERE forum_id = $1 AND user_id = $2", [id, userId]);
+      res.json({ liked: false });
+    } else {
+      await pool.query("INSERT INTO forum_likes (forum_id, user_id) VALUES ($1, $2)", [id, userId]);
+      res.json({ liked: true });
+    }
+  }));
+
+  app.post("/api/forums/:id/comments", authenticateToken, catchAsync(async (req: any, res: Response) => {
+    const { id } = req.params;
+    const { content } = req.body;
+    const result = await pool.query(
+      "INSERT INTO forum_comments (forum_id, user_id, content) VALUES ($1, $2, $3) RETURNING *",
+      [req.user.id, id, content]
+    );
+    
+    const fullComment = await pool.query(`
+      SELECT c.*, 
+        CASE WHEN c.user_id = 0 THEN 'Fumiko' ELSE u.name END as user_name,
+        CASE WHEN c.user_id = 0 THEN 'admin' ELSE u.role END as user_role
+      FROM forum_comments c
+      LEFT JOIN users u ON c.user_id = u.id
+      WHERE c.id = $1
+    `, [result.rows[0].id]);
+
+    res.json(fullComment.rows[0]);
+  }));
+
+  app.delete("/api/admin/forums/:id", authenticateToken, isAdmin, catchAsync(async (req: any, res: Response) => {
+    const { id } = req.params;
+    await pool.query("DELETE FROM forums WHERE id = $1", [id]);
+    res.json({ success: true });
   }));
 
   // Reports
@@ -353,11 +455,6 @@ async function startServer() {
   }));
 
   // Admin Routes
-  const isAdmin = (req: any, res: any, next: any) => {
-    if (req.user.role !== 'admin') return res.status(403).json({ error: "Forbidden" });
-    next();
-  };
-
   app.get("/api/admin/users", authenticateToken, isAdmin, catchAsync(async (req: Request, res: Response) => {
     const result = await pool.query("SELECT id, name, role, phone, country, age, status, created_at FROM users ORDER BY created_at DESC");
     res.json(result.rows);
