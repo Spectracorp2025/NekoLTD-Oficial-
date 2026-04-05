@@ -11,8 +11,22 @@ export default function Chat() {
   const [newMessage, setNewMessage] = useState('');
   const socketRef = useRef<Socket | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const scrollToBottom = (smooth = true) => {
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ 
+        behavior: smooth ? 'smooth' : 'auto',
+        block: 'end' 
+      });
+    }
+  };
 
   useEffect(() => {
+    // Focus input on mount
+    inputRef.current?.focus();
+
     fetch('/api/chat', {
       headers: { 'Authorization': `Bearer ${token}` }
     })
@@ -23,7 +37,11 @@ export default function Chat() {
       }
       return res.json();
     })
-    .then(data => setMessages(data))
+    .then(data => {
+      setMessages(data);
+      // Scroll to bottom after initial load without animation for instant feel
+      setTimeout(() => scrollToBottom(false), 100);
+    })
     .catch(err => console.error("Error fetching chat:", err));
 
     socketRef.current = io();
@@ -46,9 +64,7 @@ export default function Chat() {
   }, [token]);
 
   useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-    }
+    scrollToBottom();
   }, [messages]);
 
   const handleSendMessage = (e: React.FormEvent) => {
@@ -272,10 +288,12 @@ export default function Chat() {
             </motion.div>
           ))}
         </AnimatePresence>
+        <div ref={messagesEndRef} />
       </div>
 
       <form onSubmit={handleSendMessage} className="flex gap-2">
         <input
+          ref={inputRef}
           type="text"
           value={newMessage}
           onChange={(e) => setNewMessage(e.target.value)}
