@@ -9,6 +9,7 @@ interface Game {
   description: string;
   url: string;
   thumbnail_url: string;
+  password?: string;
   allowed_roles: string[];
 }
 
@@ -39,6 +40,21 @@ export default function Games() {
   const canAccess = (allowedRoles: string[]) => {
     if (!allowedRoles || allowedRoles.length === 0) return true;
     return allowedRoles.includes(user?.role || 'normal');
+  };
+
+  const handlePlay = (game: Game) => {
+    if (!canAccess(game.allowed_roles)) return;
+    
+    if (game.password) {
+      const pass = window.prompt(`Este juego requiere una clave para acceder:\n(La clave es necesaria para descomprimir o abrir el archivo)`);
+      if (pass === game.password) {
+        window.open(game.url, '_blank');
+      } else if (pass !== null) {
+        alert('Clave incorrecta');
+      }
+    } else {
+      window.open(game.url, '_blank');
+    }
   };
 
   const filteredGames = games.filter(game => 
@@ -119,16 +135,13 @@ export default function Games() {
                   ))}
                 </div>
                 
-                <a
-                  href={canAccess(game.allowed_roles) ? game.url : '#'}
-                  target={canAccess(game.allowed_roles) ? "_blank" : "_self"}
-                  rel="noopener noreferrer"
+                <button
+                  onClick={() => handlePlay(game)}
                   className={`flex items-center gap-2 px-6 py-2.5 rounded-xl font-bold transition-all ${
                     canAccess(game.allowed_roles)
                       ? 'bg-purple-600 hover:bg-purple-500 text-white shadow-lg shadow-purple-600/20'
                       : 'bg-slate-800 text-slate-500 cursor-not-allowed'
                   }`}
-                  onClick={e => !canAccess(game.allowed_roles) && e.preventDefault()}
                 >
                   {canAccess(game.allowed_roles) ? (
                     <>
@@ -137,7 +150,7 @@ export default function Games() {
                   ) : (
                     'Bloqueado'
                   )}
-                </a>
+                </button>
               </div>
             </div>
           </motion.div>

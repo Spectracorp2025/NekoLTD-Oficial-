@@ -77,7 +77,7 @@ export default function AdminPanel() {
   }, [notification]);
   
   const [adForm, setAdForm] = useState({ title: '', content: '', media_url: '', media_type: 'image' });
-  const [gameForm, setGameForm] = useState({ title: '', description: '', url: '', thumbnail_url: '', category: 'juegos', allowed_roles: ['normal', 'premium', 'plus', 'admin'] });
+  const [gameForm, setGameForm] = useState({ title: '', description: '', url: '', thumbnail_url: '', category: 'juegos', password: '', allowed_roles: ['normal', 'premium', 'plus', 'admin'] });
   const [appForm, setAppForm] = useState({ title: '', description: '', url: '', thumbnail_url: '', allowed_roles: ['normal', 'premium', 'plus', 'admin'] });
   const [accountForm, setAccountForm] = useState({ title: '', description: '', details: '', allowed_roles: ['normal', 'premium', 'plus', 'admin'], expires_at: '' });
   const [novelForm, setNovelForm] = useState({ title: '', description: '', cover_url: '', allowed_roles: ['normal', 'premium', 'plus', 'admin'] });
@@ -906,6 +906,13 @@ export default function AdminPanel() {
                   className="w-full bg-white/5 border border-white/10 rounded-xl p-4 outline-none focus:border-purple-500"
                   value={gameForm.thumbnail_url}
                   onChange={e => setGameForm({...gameForm, thumbnail_url: e.target.value})}
+                />
+                <input 
+                  type="text" 
+                  placeholder="Contraseña del Juego (Opcional)"
+                  className="w-full bg-white/5 border border-white/10 rounded-xl p-4 outline-none focus:border-purple-500"
+                  value={gameForm.password}
+                  onChange={e => setGameForm({...gameForm, password: e.target.value})}
                 />
                 <RoleSelector form={gameForm} setForm={setGameForm} />
                 <button type="submit" className="w-full bg-purple-600 hover:bg-purple-500 text-white font-black py-4 rounded-xl transition-all shadow-lg shadow-purple-600/20 flex items-center justify-center gap-2">

@@ -75,7 +75,6 @@ export default function Layout({ children, activeSection, onSectionChange }: {
     { id: 'accounts', label: 'Cuentas', icon: LayoutDashboard },
     { id: 'streams', label: 'Transmisiones', icon: Tv },
     { id: 'chat', label: 'Chat Global', icon: MessageSquare },
-    { id: 'games', label: 'Juegos', icon: Gamepad2 },
     { id: 'videogames', label: 'Videojuegos', icon: Gamepad2 },
     { id: 'novels', label: 'Novelas', icon: Book },
     { id: 'apps', label: 'Aplicaciones', icon: AppWindow },

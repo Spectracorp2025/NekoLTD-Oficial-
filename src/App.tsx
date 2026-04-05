@@ -34,7 +34,6 @@ function MainContent() {
       case 'home': return <Home />;
       case 'accounts': return <Accounts />;
       case 'chat': return <Chat />;
-      case 'games': return <Games />;
       case 'videogames': return <Games />;
       case 'novels': return <VisualNovels />;
       case 'apps': return <Apps />;
