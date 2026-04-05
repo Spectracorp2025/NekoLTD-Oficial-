@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
-import { Gamepad2, Trophy, Star, Lock, Search } from 'lucide-react';
+import { Gamepad2, Trophy, Star, Lock, Search, Key, Copy, Check } from 'lucide-react';
 import { useAuth } from './AuthContext';
 
 interface Game {
@@ -18,6 +18,8 @@ export default function Games() {
   const [games, setGames] = useState<Game[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+
+  const [copiedId, setCopiedId] = useState<number | null>(null);
 
   useEffect(() => {
     fetchGames();
@@ -42,19 +44,15 @@ export default function Games() {
     return allowedRoles.includes(user?.role || 'normal');
   };
 
+  const copyToClipboard = (text: string, id: number) => {
+    navigator.clipboard.writeText(text);
+    setCopiedId(id);
+    setTimeout(() => setCopiedId(null), 2000);
+  };
+
   const handlePlay = (game: Game) => {
     if (!canAccess(game.allowed_roles)) return;
-    
-    if (game.password) {
-      const pass = window.prompt(`Este juego requiere una clave para acceder:\n(La clave es necesaria para descomprimir o abrir el archivo)`);
-      if (pass === game.password) {
-        window.open(game.url, '_blank');
-      } else if (pass !== null) {
-        alert('Clave incorrecta');
-      }
-    } else {
-      window.open(game.url, '_blank');
-    }
+    window.open(game.url, '_blank');
   };
 
   const filteredGames = games.filter(game => 
@@ -122,9 +120,28 @@ export default function Games() {
                 <h3 className="text-xl font-bold">{game.title}</h3>
               </div>
               
-              <p className="text-slate-400 text-sm line-clamp-3 mb-6 flex-1">
+              <p className="text-slate-400 text-sm line-clamp-3 mb-4 flex-1">
                 {game.description}
               </p>
+
+              {game.password && canAccess(game.allowed_roles) && (
+                <div className="mb-6 p-3 bg-white/5 border border-white/10 rounded-2xl flex items-center justify-between group/pass">
+                  <div className="flex items-center gap-2 overflow-hidden">
+                    <Key size={14} className="text-purple-400 shrink-0" />
+                    <div className="flex flex-col overflow-hidden">
+                      <span className="text-[10px] font-black uppercase text-slate-500 leading-none mb-1">Clave de descompresión</span>
+                      <span className="text-sm font-mono text-slate-200 truncate">{game.password}</span>
+                    </div>
+                  </div>
+                  <button 
+                    onClick={() => copyToClipboard(game.password!, game.id)}
+                    className="p-2 hover:bg-white/10 rounded-xl transition-colors text-slate-400 hover:text-purple-400"
+                    title="Copiar clave"
+                  >
+                    {copiedId === game.id ? <Check size={16} className="text-green-400" /> : <Copy size={16} />}
+                  </button>
+                </div>
+              )}
 
               <div className="flex items-center justify-between gap-4">
                 <div className="flex flex-wrap gap-1">
