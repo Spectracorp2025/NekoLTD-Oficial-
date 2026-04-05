@@ -274,10 +274,14 @@ export default function AdminPanel() {
   const handlePublishAccount = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      const payload = {
+        ...accountForm,
+        expires_at: accountForm.expires_at ? new Date(accountForm.expires_at).toISOString() : null
+      };
       const res = await fetch('/api/admin/accounts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-        body: JSON.stringify(accountForm)
+        body: JSON.stringify(payload)
       });
       if (res.ok) { 
         setNotification({ message: 'Cuenta publicada', type: 'success' });
@@ -324,10 +328,17 @@ export default function AdminPanel() {
     try {
       const url = editingStreamId ? `/api/admin/streams/${editingStreamId}` : '/api/admin/streams';
       const method = editingStreamId ? 'PUT' : 'POST';
+      
+      // Convert local time to UTC ISO string
+      const payload = {
+        ...streamForm,
+        scheduled_at: new Date(streamForm.scheduled_at).toISOString()
+      };
+
       const res = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-        body: JSON.stringify(streamForm)
+        body: JSON.stringify(payload)
       });
       if (res.ok) {
         setNotification({ message: editingStreamId ? 'Transmisión actualizada' : 'Transmisión publicada', type: 'success' });
@@ -801,10 +812,15 @@ export default function AdminPanel() {
                       <button 
                         onClick={() => {
                           setEditingStreamId(s.id);
+                          // Convert UTC to local ISO string for datetime-local input
+                          const localDate = new Date(s.scheduled_at);
+                          const offset = localDate.getTimezoneOffset() * 60000;
+                          const localISOTime = new Date(localDate.getTime() - offset).toISOString().slice(0, 16);
+                          
                           setStreamForm({
                             title: s.title,
                             description: s.description,
-                            scheduled_at: s.scheduled_at.slice(0, 16),
+                            scheduled_at: localISOTime,
                             stream_url: s.stream_url || '',
                             image_url: s.image_url || ''
                           });
