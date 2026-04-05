@@ -8,37 +8,69 @@
 
 @layer base {
   body {
-    @apply bg-slate-950 text-slate-100 font-sans antialiased;
+    @apply bg-[#05070a] text-slate-200 font-sans antialiased min-h-screen relative overflow-x-hidden;
+    background-image: url("/fondo.png");
+    background-attachment: fixed;
+    background-position: center;
+    background-size: cover;
+    background-repeat: no-repeat;
+  }
+
+  body::before {
+    content: "";
+    @apply fixed inset-0 bg-[#05070a]/80 backdrop-blur-[1px] -z-10;
   }
 
   h1, h2, h3, h4, h5, h6 {
     @apply font-fantasy tracking-wider;
-    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5), 0 0 20px rgba(59, 130, 246, 0.3);
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8), 0 0 15px rgba(185, 28, 28, 0.4);
   }
 
   .text-fantasy {
     @apply font-fantasy;
-    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.9);
   }
 
   .fantasy-card {
-    @apply bg-slate-900/60 backdrop-blur-xl border border-white/10 rounded-3xl shadow-2xl;
-    box-shadow: 0 0 40px rgba(0, 0, 0, 0.5), inset 0 0 20px rgba(255, 255, 255, 0.02);
+    @apply bg-[#0a0c14]/80 backdrop-blur-xl border border-red-900/20 rounded-3xl shadow-2xl;
+    box-shadow: 0 0 50px rgba(0, 0, 0, 0.7), inset 0 0 30px rgba(185, 28, 28, 0.05);
   }
 
   .custom-scrollbar::-webkit-scrollbar {
     width: 6px;
   }
   .custom-scrollbar::-webkit-scrollbar-track {
-    background: rgba(0, 0, 0, 0.2);
+    background: rgba(0, 0, 0, 0.4);
   }
   .custom-scrollbar::-webkit-scrollbar-thumb {
-    background: rgba(59, 130, 246, 0.3);
-    border-radius: 10px;
-    border: 1px solid rgba(255, 255, 255, 0.05);
+    @apply bg-red-900/40 rounded-full border border-red-500/10;
   }
   .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-    background: rgba(59, 130, 246, 0.5);
+    @apply bg-red-800/60;
+  }
+
+  button:not(.no-fantasy), .btn-fantasy {
+    @apply font-fantasy uppercase tracking-tighter;
+  }
+
+  input, textarea, select {
+    @apply bg-[#0a0c14]/60 border border-red-900/30 focus:border-red-600/50 transition-all;
+  }
+
+  /* Mobile Optimizations */
+  @media (max-width: 768px) {
+    h1 { @apply text-3xl; }
+    h2 { @apply text-2xl; }
+    h3 { @apply text-xl; }
+    .fantasy-card { @apply rounded-2xl p-4; }
+  }
+
+  /* Lightweight Overrides */
+  .optimization-on * {
+    animation: none !important;
+    transition: none !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
   }
 }
 
@@ -50,6 +82,14 @@
 
 .animate-float {
   animation: float 4s ease-in-out infinite;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
 
 

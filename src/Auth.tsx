@@ -66,37 +66,30 @@ export default function Auth() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-6 relative overflow-hidden bg-slate-950">
-      {/* Background Video */}
+    <div className="min-h-screen flex items-center justify-center p-6 relative overflow-hidden bg-[#05070a]">
+      {/* Background Image */}
       <div className="absolute inset-0 z-0 pointer-events-none">
-        <video 
-          autoPlay 
-          muted 
-          loop 
-          playsInline
-          className="w-full h-full object-cover md:object-contain opacity-40"
-          src="/video.mp4"
-          onError={(e) => {
-            (e.target as HTMLVideoElement).src = "https://assets.mixkit.co/videos/preview/mixkit-starry-night-sky-over-a-mountain-range-11044-large.mp4";
-          }}
+        <div 
+          className="w-full h-full bg-cover bg-center bg-no-repeat opacity-40"
+          style={{ backgroundImage: 'url("/fondo.png")' }}
         />
-        <div className="absolute inset-0 bg-slate-950/60 backdrop-blur-[2px]" />
+        <div className="absolute inset-0 bg-[#05070a]/80 backdrop-blur-[2px]" />
       </div>
 
       <motion.div 
-        initial={{ opacity: 0, scale: 0.9 }}
+        initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
-        className="relative z-10 w-full max-w-md bg-slate-900/80 backdrop-blur-2xl p-8 rounded-3xl border border-white/10 shadow-2xl shadow-blue-500/20"
+        className="relative z-10 w-full max-w-md bg-[#0a0c14]/90 backdrop-blur-2xl p-5 md:p-8 rounded-3xl border border-red-900/20 shadow-2xl shadow-red-900/30 mx-4"
       >
-        <div className="text-center mb-8">
+        <div className="text-center mb-6 md:mb-8">
           <motion.h1 
             animate={{ scale: [1, 1.05, 1] }}
             transition={{ duration: 3, repeat: Infinity }}
-            className="text-4xl font-black bg-gradient-to-r from-blue-400 via-purple-500 to-pink-500 bg-clip-text text-transparent mb-2 drop-shadow-[0_0_15px_rgba(59,130,246,0.5)]"
+            className="text-3xl md:text-4xl font-black bg-gradient-to-r from-red-600 via-amber-500 to-red-800 bg-clip-text text-transparent mb-1 drop-shadow-[0_0_15px_rgba(220,38,38,0.5)] uppercase tracking-widest"
           >
             NEKO LTD
           </motion.h1>
-          <p className="text-slate-400 font-medium">{isLogin ? 'Bienvenido de vuelta, viajero' : 'Únete a nuestra hermandad'}</p>
+          <p className="text-xs md:text-sm text-slate-400 font-medium">{isLogin ? 'Bienvenido de vuelta, viajero' : 'Únete a nuestra hermandad'}</p>
         </div>
 
 
@@ -115,7 +108,7 @@ export default function Auth() {
                   required
                   type="text"
                   placeholder="Nombre Completo"
-                  className="w-full bg-white/5 border border-white/10 rounded-xl py-3 pl-10 pr-4 focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                  className="w-full bg-white/5 border border-white/10 rounded-xl py-3 pl-10 pr-4 focus:outline-none focus:ring-2 focus:ring-red-600/50"
                   value={formData.name}
                   onChange={e => setFormData({...formData, name: e.target.value})}
                 />
@@ -127,7 +120,7 @@ export default function Auth() {
                     required
                     type="number"
                     placeholder="Edad"
-                    className="w-full bg-white/5 border border-white/10 rounded-xl py-3 pl-10 pr-4 focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                    className="w-full bg-white/5 border border-white/10 rounded-xl py-3 pl-10 pr-4 focus:outline-none focus:ring-2 focus:ring-red-600/50"
                     value={formData.age}
                     onChange={e => setFormData({...formData, age: e.target.value})}
                   />
@@ -138,7 +131,7 @@ export default function Auth() {
                     required
                     type="text"
                     placeholder="País"
-                    className="w-full bg-white/5 border border-white/10 rounded-xl py-3 pl-10 pr-4 focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                    className="w-full bg-white/5 border border-white/10 rounded-xl py-3 pl-10 pr-4 focus:outline-none focus:ring-2 focus:ring-red-600/50"
                     value={formData.country}
                     onChange={e => setFormData({...formData, country: e.target.value})}
                   />
@@ -153,7 +146,7 @@ export default function Auth() {
               required
               type="text"
               placeholder="Número de Celular"
-              className="w-full bg-white/5 border border-white/10 rounded-xl py-3 pl-10 pr-4 focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+              className="w-full bg-white/5 border border-white/10 rounded-xl py-3 pl-10 pr-4 focus:outline-none focus:ring-2 focus:ring-red-600/50"
               value={formData.phone}
               onChange={e => setFormData({...formData, phone: e.target.value})}
             />
@@ -165,7 +158,7 @@ export default function Auth() {
               required
               type="password"
               placeholder="Contraseña"
-              className="w-full bg-white/5 border border-white/10 rounded-xl py-3 pl-10 pr-4 focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+              className="w-full bg-white/5 border border-white/10 rounded-xl py-3 pl-10 pr-4 focus:outline-none focus:ring-2 focus:ring-red-600/50"
               value={formData.password}
               onChange={e => setFormData({...formData, password: e.target.value})}
             />
@@ -185,7 +178,7 @@ export default function Auth() {
                     onClick={() => setFormData({...formData, role: r.id as any})}
                     className={`flex flex-col items-center gap-1 p-2 rounded-xl border transition-all ${
                       formData.role === r.id 
-                        ? 'bg-blue-500/20 border-blue-500 text-blue-400' 
+                        ? 'bg-red-600/20 border-red-600 text-red-400 shadow-[0_0_10px_rgba(220,38,38,0.2)]' 
                         : 'bg-white/5 border-white/10 text-slate-500'
                     }`}
                   >
@@ -201,11 +194,11 @@ export default function Auth() {
                   <input
                     type="text"
                     placeholder="Código de Activación"
-                    className="w-full bg-white/5 border border-white/10 rounded-xl py-3 pl-10 pr-4 focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                    className="w-full bg-white/5 border border-white/10 rounded-xl py-3 pl-10 pr-4 focus:outline-none focus:ring-2 focus:ring-red-600/50"
                     value={formData.code}
                     onChange={e => setFormData({...formData, code: e.target.value})}
                   />
-                  <p className="text-[10px] text-blue-400 mt-1 ml-1">
+                  <p className="text-[10px] text-red-400 mt-1 ml-1">
                     * Si no tienes código, dale a Registrarse para pedirlo por WhatsApp.
                   </p>
                 </div>
@@ -216,7 +209,7 @@ export default function Auth() {
           <button
             disabled={loading}
             type="submit"
-            className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white font-bold py-3 rounded-xl shadow-lg shadow-blue-500/20 transition-all active:scale-95 disabled:opacity-50"
+            className="w-full bg-gradient-to-r from-red-700 to-red-900 hover:from-red-600 hover:to-red-800 text-white font-bold py-3 rounded-xl shadow-lg shadow-red-900/40 transition-all active:scale-95 disabled:opacity-50 border border-red-500/30 uppercase tracking-widest"
           >
             {loading ? 'Procesando...' : (isLogin ? 'Entrar al Reino' : 'Completar Registro')}
           </button>
@@ -237,6 +230,9 @@ export default function Auth() {
         autoPlay 
         loop 
         src="/musica.mp3"
+        onCanPlay={(e) => {
+          (e.target as HTMLAudioElement).play().catch(() => {});
+        }}
         onError={(e) => {
           (e.target as HTMLAudioElement).src = "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3";
         }}

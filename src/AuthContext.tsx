@@ -7,6 +7,8 @@ interface AuthContextType {
   login: (token: string, user: User) => void;
   logout: () => void;
   loading: boolean;
+  optimizationMode: boolean;
+  setOptimizationMode: (mode: boolean) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -14,6 +16,13 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(localStorage.getItem('token'));
+  const [optimizationMode, setOptimizationMode] = useState<boolean>(() => {
+    return localStorage.getItem('optimizationMode') === 'true';
+  });
+
+  useEffect(() => {
+    localStorage.setItem('optimizationMode', optimizationMode.toString());
+  }, [optimizationMode]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -50,7 +59,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, token, login, logout, loading }}>
+    <AuthContext.Provider value={{ user, token, login, logout, loading, optimizationMode, setOptimizationMode }}>
       {children}
     </AuthContext.Provider>
   );

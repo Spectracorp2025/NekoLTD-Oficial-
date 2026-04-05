@@ -2,16 +2,17 @@ import React from 'react';
 import { motion } from 'motion/react';
 import { useAuth } from './AuthContext';
 import { Sparkles, Shield, Zap, Crown } from 'lucide-react';
+import { cn } from './lib/utils';
 
 export default function Home() {
   const { user } = useAuth();
 
   const getRoleIcon = () => {
     switch (user?.role) {
-      case 'admin': return <Crown className="text-purple-400" size={48} />;
-      case 'plus': return <Zap className="text-cyan-400" size={48} />;
-      case 'premium': return <Star className="text-yellow-400" size={48} />;
-      default: return <Shield className="text-blue-400" size={48} />;
+      case 'admin': return <Crown className="text-amber-500" size={48} />;
+      case 'plus': return <Zap className="text-red-500" size={48} />;
+      case 'premium': return <Star className="text-amber-400" size={48} />;
+      default: return <Shield className="text-red-600" size={48} />;
     }
   };
 
@@ -27,8 +28,8 @@ export default function Home() {
         transition={{ duration: 0.8, type: "spring" }}
         className="mb-8 relative"
       >
-        <div className="absolute inset-0 bg-blue-500/20 blur-[100px] rounded-full" />
-        <div className="relative z-10 p-6 bg-slate-900/40 backdrop-blur-md rounded-full border border-white/10 animate-float">
+        <div className="absolute inset-0 bg-red-600/20 blur-[100px] rounded-full" />
+        <div className="relative z-10 p-6 bg-[#0a0c14]/60 backdrop-blur-md rounded-full border border-red-900/20 animate-float shadow-[0_0_30px_rgba(220,38,38,0.2)]">
           {getRoleIcon()}
         </div>
       </motion.div>
@@ -37,13 +38,13 @@ export default function Home() {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.3 }}
-        className="space-y-4"
+        className="space-y-4 w-full"
       >
-        <h1 className="text-5xl md:text-7xl font-black bg-gradient-to-r from-blue-400 via-purple-500 to-pink-500 bg-clip-text text-transparent">
-          Bienvenido, {user?.name}
+        <h1 className="text-3xl md:text-7xl font-black bg-gradient-to-r from-red-600 via-amber-500 to-red-800 bg-clip-text text-transparent uppercase tracking-widest leading-tight">
+          Bienvenido, <br className="md:hidden" /> {user?.name}
         </h1>
-        <p className="text-xl md:text-2xl text-slate-400 font-fantasy tracking-widest uppercase">
-          Tu aventura en <span className="text-blue-400">Neko Ltd</span> comienza ahora
+        <p className="text-base md:text-2xl text-slate-400 font-fantasy tracking-widest uppercase px-4">
+          Tu aventura en <span className="text-red-500">Neko Ltd</span> comienza ahora
         </p>
       </motion.div>
 
@@ -51,17 +52,20 @@ export default function Home() {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 1 }}
-        className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-6 w-full max-w-4xl"
+        className="mt-8 md:mt-12 grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-6 w-full max-w-4xl px-2"
       >
         {[
           { label: 'Rango', value: user?.role, icon: Sparkles },
           { label: 'País', value: user?.country, icon: Shield },
           { label: 'Estado', value: user?.status, icon: Zap },
         ].map((stat, i) => (
-          <div key={i} className="fantasy-card p-6 flex flex-col items-center gap-2">
-            <stat.icon className="text-blue-400/50" size={20} />
-            <p className="text-xs text-slate-500 uppercase font-bold tracking-tighter">{stat.label}</p>
-            <p className="text-lg font-fantasy uppercase text-blue-100">{stat.value}</p>
+          <div key={i} className={cn(
+            "fantasy-card p-4 md:p-6 flex flex-col items-center gap-1 md:gap-2 border-red-900/30",
+            i === 2 && "col-span-2 md:col-span-1"
+          )}>
+            <stat.icon className="text-red-500/50" size={16} />
+            <p className="text-[10px] text-slate-500 uppercase font-bold tracking-tighter">{stat.label}</p>
+            <p className="text-sm md:text-lg font-fantasy uppercase text-red-100 truncate w-full">{stat.value}</p>
           </div>
         ))}
       </motion.div>

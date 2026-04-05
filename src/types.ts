@@ -16,6 +16,16 @@ export interface ChatMessage {
   created_at: string;
 }
 
+export interface Stream {
+  id: number;
+  title: string;
+  description: string;
+  scheduled_at: string;
+  stream_url: string;
+  image_url: string;
+  created_at: string;
+}
+
 export interface ForumPost {
   id: number;
   user_id: number;

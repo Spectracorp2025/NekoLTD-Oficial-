@@ -15,6 +15,7 @@ import Loader from './Loader';
 import VisualNovels from './VisualNovels';
 import Apps from './Apps';
 import Store from './Store';
+import Streams from './Streams';
 
 function MainContent() {
   const { user, loading } = useAuth();
@@ -38,6 +39,7 @@ function MainContent() {
       case 'novels': return <VisualNovels />;
       case 'apps': return <Apps />;
       case 'store': return <Store />;
+      case 'streams': return <Streams />;
       case 'forums': return <Forums />;
       case 'support': return <Support />;
       case 'info': return <Info />;

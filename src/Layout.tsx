@@ -4,27 +4,42 @@ import { useAuth } from './AuthContext';
 import { 
   LogOut, MessageSquare, LayoutDashboard, Gamepad2, Users, 
   Info, Bell, ShieldAlert, ChevronRight, ChevronLeft, Menu, X,
-  Volume2, VolumeX, Home as HomeIcon, Book, AppWindow, ShoppingBag
+  Volume2, VolumeX, Home as HomeIcon, Book, AppWindow, ShoppingBag,
+  Zap, ZapOff, Tv
 } from 'lucide-react';
-import { clsx, type ClassValue } from 'clsx';
-import { twMerge } from 'tailwind-merge';
+import { cn } from './lib/utils';
 import Loader from './Loader';
-
-function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs));
-}
 
 export default function Layout({ children, activeSection, onSectionChange }: { 
   children: React.ReactNode, 
   activeSection: string,
   onSectionChange: (section: string) => void 
 }) {
-  const { user, logout } = useAuth();
+  const { user, logout, optimizationMode, setOptimizationMode } = useAuth();
   const [isSidebarOpen, setIsSidebarOpen] = useState(window.innerWidth > 1024);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isMuted, setIsMuted] = useState(true);
   const [isChangingSection, setIsChangingSection] = useState(false);
   const audioRef = useRef<HTMLAudioElement>(null);
+
+  useEffect(() => {
+    if (audioRef.current) {
+      audioRef.current.volume = 0.3;
+      if (!isMuted) {
+        audioRef.current.play().catch(err => console.log("Autoplay blocked:", err));
+      }
+    }
+  }, [isMuted]);
+
+  // Auto-play on mount (if possible)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (audioRef.current && !isMuted) {
+        audioRef.current.play().catch(() => {});
+      }
+    }, 1000);
+    return () => clearTimeout(timer);
+  }, []);
 
   useEffect(() => {
     const handleResize = () => {
@@ -58,6 +73,7 @@ export default function Layout({ children, activeSection, onSectionChange }: {
   const menuItems = [
     { id: 'home', label: 'Inicio', icon: HomeIcon },
     { id: 'accounts', label: 'Cuentas', icon: LayoutDashboard },
+    { id: 'streams', label: 'Transmisiones', icon: Tv },
     { id: 'chat', label: 'Chat Global', icon: MessageSquare },
     { id: 'games', label: 'Juegos', icon: Gamepad2 },
     { id: 'videogames', label: 'Videojuegos', icon: Gamepad2 },
@@ -84,31 +100,31 @@ export default function Layout({ children, activeSection, onSectionChange }: {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 font-sans overflow-hidden relative">
+    <div className={cn(
+      "h-[100dvh] bg-slate-950 text-slate-100 font-sans overflow-hidden relative flex flex-col",
+      optimizationMode && "optimization-on"
+    )}>
       <AnimatePresence>
         {isChangingSection && <Loader />}
       </AnimatePresence>
 
-      {/* Background Video - Local file as requested */}
+      {/* Background Image - Local file as requested */}
       <div className="fixed inset-0 z-0 pointer-events-none">
-        <video 
-          autoPlay 
-          muted 
-          loop 
-          playsInline
-          className="w-full h-full object-cover md:object-contain opacity-40"
-          src="/video.mp4"
-          onError={(e) => {
-            // Fallback if local file is missing
-            (e.target as HTMLVideoElement).src = "https://assets.mixkit.co/videos/preview/mixkit-starry-night-sky-over-a-mountain-range-11044-large.mp4";
-          }}
-        />
-        <div className="absolute inset-0 bg-slate-950/60 backdrop-blur-[2px]" />
+        {!optimizationMode && (
+          <div 
+            className="w-full h-full bg-cover bg-center bg-no-repeat opacity-40"
+            style={{ backgroundImage: 'url("/fondo.png")' }}
+          />
+        )}
+        <div className={cn(
+          "absolute inset-0 bg-slate-950/60",
+          !optimizationMode && "backdrop-blur-[2px]"
+        )} />
       </div>
 
       {/* Mobile Header */}
-      <header className="lg:hidden relative z-[60] flex items-center justify-between p-4 bg-slate-900/80 backdrop-blur-xl border-b border-white/10">
-        <h1 className="text-xl font-black bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">
+      <header className="lg:hidden relative z-[60] flex-none flex items-center justify-between p-4 bg-[#0a0c14]/90 backdrop-blur-xl border-b border-red-900/20">
+        <h1 className="text-xl font-black bg-gradient-to-r from-red-500 to-amber-600 bg-clip-text text-transparent uppercase tracking-widest">
           NEKO LTD
         </h1>
         <div className="flex items-center gap-4">
@@ -124,7 +140,7 @@ export default function Layout({ children, activeSection, onSectionChange }: {
         </div>
       </header>
 
-      <div className="relative z-10 flex h-screen pt-0 lg:pt-0">
+      <div className="relative z-10 flex flex-1 overflow-hidden pt-0 lg:pt-0">
         {/* Sidebar - Desktop */}
         <motion.aside 
           initial={false}
@@ -133,7 +149,7 @@ export default function Layout({ children, activeSection, onSectionChange }: {
             x: 0
           }}
           className={cn(
-            "hidden lg:flex bg-slate-900/80 backdrop-blur-xl border-r border-white/10 flex-col transition-all duration-300",
+            "hidden lg:flex bg-[#0a0c14]/95 backdrop-blur-xl border-r border-red-900/20 flex-col transition-all duration-300",
             !isSidebarOpen && "items-center"
           )}
         >
@@ -142,7 +158,7 @@ export default function Layout({ children, activeSection, onSectionChange }: {
               <motion.h1 
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                className="text-2xl font-black bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent"
+                className="text-2xl font-black bg-gradient-to-r from-red-500 to-amber-600 bg-clip-text text-transparent uppercase tracking-widest"
               >
                 NEKO LTD
               </motion.h1>
@@ -163,13 +179,13 @@ export default function Layout({ children, activeSection, onSectionChange }: {
                 className={cn(
                   "w-full flex items-center gap-4 p-3 rounded-xl transition-all duration-300 group",
                   activeSection === item.id 
-                    ? "bg-blue-500/20 text-blue-400 border border-blue-500/30" 
+                    ? "bg-red-600/20 text-red-400 border border-red-600/30 shadow-[0_0_15px_rgba(220,38,38,0.2)]" 
                     : "hover:bg-white/5 text-slate-400 hover:text-slate-100"
                 )}
               >
                 <item.icon size={22} className={cn(
                   "transition-transform group-hover:scale-110 shrink-0",
-                  activeSection === item.id && "text-blue-400"
+                  activeSection === item.id && "text-red-400"
                 )} />
                 {isSidebarOpen && (
                   <motion.span 
@@ -184,12 +200,35 @@ export default function Layout({ children, activeSection, onSectionChange }: {
             ))}
           </nav>
 
-          <div className="p-4 border-t border-white/10 w-full">
+          <div className="p-4 border-t border-red-900/20 w-full space-y-2">
+            {/* Optimization Toggle */}
+            <button
+              onClick={() => setOptimizationMode(!optimizationMode)}
+              className={cn(
+                "w-full flex items-center gap-4 p-3 rounded-xl transition-all duration-300 group",
+                optimizationMode 
+                  ? "bg-amber-500/20 text-amber-400 border border-amber-500/30 shadow-[0_0_15px_rgba(245,158,11,0.2)]" 
+                  : "hover:bg-white/5 text-slate-400 hover:text-slate-100"
+              )}
+              title={optimizationMode ? "Desactivar Optimización" : "Activar Optimización"}
+            >
+              {optimizationMode ? <ZapOff size={22} className="shrink-0" /> : <Zap size={22} className="shrink-0" />}
+              {isSidebarOpen && (
+                <motion.span 
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="font-medium truncate"
+                >
+                  Optimización
+                </motion.span>
+              )}
+            </button>
+
             <div className={cn(
-              "flex items-center gap-3 p-3 rounded-xl bg-white/5",
+              "flex items-center gap-3 p-3 rounded-xl bg-red-950/30 border border-red-900/20",
               !isSidebarOpen && "justify-center"
             )}>
-              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center font-bold text-lg shrink-0">
+              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-red-600 to-amber-700 flex items-center justify-center font-bold text-lg shrink-0 shadow-lg border border-red-500/30">
                 {user?.name[0].toUpperCase()}
               </div>
               {isSidebarOpen && (
@@ -219,55 +258,71 @@ export default function Layout({ children, activeSection, onSectionChange }: {
               initial={{ opacity: 0, x: -300 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -300 }}
-              className="fixed inset-0 z-50 lg:hidden bg-slate-950/95 backdrop-blur-2xl p-6 flex flex-col"
+              className="fixed inset-0 z-50 lg:hidden bg-[#05070a]/98 backdrop-blur-2xl p-6 flex flex-col"
             >
               <div className="flex items-center justify-between mb-8">
-                <h1 className="text-2xl font-black bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">
+                <h1 className="text-2xl font-black bg-gradient-to-r from-red-500 to-amber-600 bg-clip-text text-transparent uppercase tracking-widest">
                   NEKO LTD
                 </h1>
-                <button onClick={() => setIsMobileMenuOpen(false)} className="p-2 bg-white/5 rounded-lg">
-                  <X size={24} />
+                <button onClick={() => setIsMobileMenuOpen(false)} className="p-1.5 bg-white/5 rounded-lg border border-red-900/20">
+                  <X size={20} className="text-red-400" />
                 </button>
               </div>
 
-              <nav className="flex-1 space-y-2 overflow-y-auto custom-scrollbar">
+              <nav className="flex-1 space-y-1 overflow-y-auto custom-scrollbar">
                 {menuItems.map((item) => (
                   <button
                     key={item.id}
                     onClick={() => handleSectionChange(item.id)}
                     className={cn(
-                      "w-full flex items-center gap-4 p-4 rounded-2xl transition-all",
+                      "w-full flex items-center gap-3 p-3 rounded-xl transition-all",
                       activeSection === item.id 
-                        ? "bg-blue-500/20 text-blue-400 border border-blue-500/30" 
+                        ? "bg-red-600/20 text-red-400 border border-red-600/30 shadow-[0_0_10px_rgba(220,38,38,0.1)]" 
                         : "bg-white/5 text-slate-400"
                     )}
                   >
-                    <item.icon size={24} />
-                    <span className="font-bold text-lg">{item.label}</span>
+                    <item.icon size={20} className={activeSection === item.id ? "text-red-400" : ""} />
+                    <span className="font-bold text-base">{item.label}</span>
                   </button>
                 ))}
               </nav>
 
-              <div className="mt-8 pt-6 border-t border-white/10 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center font-bold text-xl">
-                    {user?.name[0].toUpperCase()}
-                  </div>
-                  <div>
-                    <p className="font-bold">{user?.name}</p>
-                    <p className={cn("text-xs font-bold uppercase", getRoleColor(user?.role || ''))}>{user?.role}</p>
-                  </div>
-                </div>
-                <button onClick={logout} className="p-3 bg-red-500/20 text-red-400 rounded-xl">
-                  <LogOut size={20} />
+              <div className="mt-4 pt-4 border-t border-red-900/20 flex flex-col gap-3">
+                {/* Optimization Toggle Mobile - Smaller */}
+                <button
+                  onClick={() => setOptimizationMode(!optimizationMode)}
+                  className={cn(
+                    "w-full flex items-center gap-3 p-2.5 rounded-xl transition-all",
+                    optimizationMode 
+                      ? "bg-amber-500/20 text-amber-400 border border-amber-500/30 shadow-[0_0_10px_rgba(245,158,11,0.1)]" 
+                      : "bg-white/5 text-slate-400"
+                  )}
+                >
+                  {optimizationMode ? <ZapOff size={18} /> : <Zap size={18} />}
+                  <span className="font-bold text-sm">Optimización {optimizationMode ? 'ON' : 'OFF'}</span>
                 </button>
+
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-red-600 to-amber-700 flex items-center justify-center font-bold text-lg border border-red-500/30">
+                      {user?.name[0].toUpperCase()}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="font-bold text-sm truncate max-w-[120px]">{user?.name}</p>
+                      <p className={cn("text-[10px] font-bold uppercase", getRoleColor(user?.role || ''))}>{user?.role}</p>
+                    </div>
+                  </div>
+                  <button onClick={logout} className="p-2.5 bg-red-500/20 text-red-400 rounded-xl border border-red-500/30">
+                    <LogOut size={18} />
+                  </button>
+                </div>
               </div>
             </motion.div>
           )}
         </AnimatePresence>
 
         {/* Content Area */}
-        <main className="flex-1 overflow-y-auto p-4 md:p-8 custom-scrollbar relative">
+        <main className="flex-1 overflow-y-auto p-3 md:p-8 custom-scrollbar relative">
           {/* Mute Toggle - Desktop */}
           <button 
             onClick={toggleMute}
@@ -278,10 +333,10 @@ export default function Layout({ children, activeSection, onSectionChange }: {
 
           <motion.div
             key={activeSection}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-            className="max-w-[100vw] mx-auto"
+            initial={optimizationMode ? { opacity: 1 } : { opacity: 0, y: 10 }}
+            animate={optimizationMode ? { opacity: 1 } : { opacity: 1, y: 0 }}
+            transition={{ duration: 0.4 }}
+            className="max-w-full mx-auto pb-6 min-h-full flex flex-col"
           >
             {children}
           </motion.div>

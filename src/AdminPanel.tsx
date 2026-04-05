@@ -4,7 +4,7 @@ import {
   Users, BarChart3, Megaphone, ShieldAlert, Trash2, 
   UserMinus, UserPlus, CheckCircle, XCircle, MessageSquare,
   Search, Filter, Save, Plus, AlertTriangle, Trash, Gamepad2,
-  AppWindow, Book, Key, Play, FileText, Video, AlertCircle, X, ShoppingCart
+  AppWindow, Book, Key, Play, FileText, Video, AlertCircle, X, ShoppingCart, Tv, Edit, Trash2 as TrashIcon
 } from 'lucide-react';
 import { useAuth } from './AuthContext';
 
@@ -40,6 +40,15 @@ interface Stats {
   pendingReports: number;
 }
 
+interface Stream {
+  id: number;
+  title: string;
+  description: string;
+  scheduled_at: string;
+  stream_url: string;
+  image_url: string;
+}
+
 export default function AdminPanel() {
   const { user: currentUser, token } = useAuth();
   const [activeTab, setActiveTab] = useState('users');
@@ -53,6 +62,7 @@ export default function AdminPanel() {
   const [novels, setNovels] = useState<any[]>([]);
   const [chapters, setChapters] = useState<any[]>([]);
   const [products, setProducts] = useState<any[]>([]);
+  const [streams, setStreams] = useState<Stream[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [confirmAction, setConfirmAction] = useState<{ type: string, id?: number, label: string } | null>(null);
@@ -69,9 +79,11 @@ export default function AdminPanel() {
   const [adForm, setAdForm] = useState({ title: '', content: '', media_url: '', media_type: 'image' });
   const [gameForm, setGameForm] = useState({ title: '', description: '', url: '', thumbnail_url: '', category: 'juegos', allowed_roles: ['normal', 'premium', 'plus', 'admin'] });
   const [appForm, setAppForm] = useState({ title: '', description: '', url: '', thumbnail_url: '', allowed_roles: ['normal', 'premium', 'plus', 'admin'] });
-  const [accountForm, setAccountForm] = useState({ title: '', description: '', details: '', allowed_roles: ['normal', 'premium', 'plus', 'admin'] });
+  const [accountForm, setAccountForm] = useState({ title: '', description: '', details: '', allowed_roles: ['normal', 'premium', 'plus', 'admin'], expires_at: '' });
   const [novelForm, setNovelForm] = useState({ title: '', description: '', cover_url: '', allowed_roles: ['normal', 'premium', 'plus', 'admin'] });
   const [productForm, setProductForm] = useState({ title: '', description: '', price: '', image_url: '' });
+  const [streamForm, setStreamForm] = useState({ title: '', description: '', scheduled_at: '', stream_url: '', image_url: '' });
+  const [editingStreamId, setEditingStreamId] = useState<number | null>(null);
   const [chapterForm, setChapterForm] = useState({ novel_id: 0, title: '', order_index: 1, allowed_roles: ['normal', 'premium', 'plus', 'admin'] });
   const [contentForm, setContentForm] = useState({ novel_id: 0, chapter_id: 0, type: 'text', content: '', order_index: 1 });
 
@@ -120,14 +132,15 @@ export default function AdminPanel() {
       } else if (activeTab === 'stats') {
         const data = await safeFetch('/api/admin/stats');
         setStats(data);
-      } else if (activeTab === 'publish' || activeTab === 'manage') {
-        const [g, a, acc, n, adData, p] = await Promise.all([
+      } else if (activeTab === 'publish' || activeTab === 'manage' || activeTab === 'streams') {
+        const [g, a, acc, n, adData, p, s] = await Promise.all([
           safeFetch('/api/games'),
           safeFetch('/api/apps'),
           safeFetch('/api/accounts'),
           safeFetch('/api/novels'),
           safeFetch('/api/ads'),
-          safeFetch('/api/products')
+          safeFetch('/api/products'),
+          safeFetch('/api/streams')
         ]);
         setGames(g);
         setApps(a);
@@ -135,6 +148,7 @@ export default function AdminPanel() {
         setNovels(n);
         setAds(adData);
         setProducts(p);
+        setStreams(s);
       }
     } catch (error: any) {
       console.error('Error fetching admin data:', error);
@@ -267,7 +281,7 @@ export default function AdminPanel() {
       });
       if (res.ok) { 
         setNotification({ message: 'Cuenta publicada', type: 'success' });
-        setAccountForm({ title: '', description: '', details: '', allowed_roles: ['normal', 'premium', 'plus', 'admin'] }); 
+        setAccountForm({ title: '', description: '', details: '', allowed_roles: ['normal', 'premium', 'plus', 'admin'], expires_at: '' }); 
         fetchData();
       }
     } catch (error) { console.error(error); }
@@ -300,6 +314,39 @@ export default function AdminPanel() {
       if (res.ok) { 
         setNotification({ message: 'Producto publicado', type: 'success' });
         setProductForm({ title: '', description: '', price: '', image_url: '' }); 
+        fetchData();
+      }
+    } catch (error) { console.error(error); }
+  };
+
+  const handlePublishStream = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const url = editingStreamId ? `/api/admin/streams/${editingStreamId}` : '/api/admin/streams';
+      const method = editingStreamId ? 'PUT' : 'POST';
+      const res = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify(streamForm)
+      });
+      if (res.ok) {
+        setNotification({ message: editingStreamId ? 'Transmisión actualizada' : 'Transmisión publicada', type: 'success' });
+        setStreamForm({ title: '', description: '', scheduled_at: '', stream_url: '', image_url: '' });
+        setEditingStreamId(null);
+        fetchData();
+      }
+    } catch (error) { console.error(error); }
+  };
+
+  const handleDeleteStream = async (id: number) => {
+    if (!window.confirm('¿Eliminar esta transmisión?')) return;
+    try {
+      const res = await fetch(`/api/admin/streams/${id}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) {
+        setNotification({ message: 'Transmisión eliminada', type: 'success' });
         fetchData();
       }
     } catch (error) { console.error(error); }
@@ -492,32 +539,35 @@ export default function AdminPanel() {
 
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h2 className="text-3xl font-black bg-gradient-to-r from-purple-400 to-pink-500 bg-clip-text text-transparent">
+          <h2 className="text-3xl font-black bg-gradient-to-r from-red-600 to-amber-600 bg-clip-text text-transparent uppercase tracking-widest">
             CENTRO DE MANDO
           </h2>
-          <p className="text-slate-400">Gestión avanzada de Neko Ltd.</p>
+          <p className="text-slate-400 font-medium">Gestión avanzada de Neko Ltd.</p>
         </div>
-        <div className="flex bg-slate-900/50 backdrop-blur-md p-1 rounded-2xl border border-white/10">
-          {[
-            { id: 'users', label: 'Usuarios', icon: Users },
-            { id: 'stats', label: 'Estadísticas', icon: BarChart3 },
-            { id: 'publish', label: 'Publicar', icon: Plus },
-            { id: 'manage', label: 'Gestionar', icon: Save },
-            { id: 'reports', label: 'Reportes', icon: ShieldAlert },
-          ].map(tab => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center gap-2 px-4 py-2 rounded-xl transition-all ${
-                activeTab === tab.id 
-                  ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/30' 
-                  : 'text-slate-400 hover:text-white hover:bg-white/5'
-              }`}
-            >
-              <tab.icon size={18} />
-              <span className="hidden md:inline font-bold text-sm">{tab.label}</span>
-            </button>
-          ))}
+        <div className="flex bg-[#0a0c14]/80 backdrop-blur-md p-1 rounded-2xl border border-red-900/20 overflow-x-auto no-scrollbar max-w-full">
+          <div className="flex min-w-max">
+            {[
+              { id: 'users', label: 'Usuarios', icon: Users },
+              { id: 'stats', label: 'Estadísticas', icon: BarChart3 },
+              { id: 'publish', label: 'Publicar', icon: Plus },
+              { id: 'streams', label: 'Transmisiones', icon: Tv },
+              { id: 'manage', label: 'Gestionar', icon: Save },
+              { id: 'reports', label: 'Reportes', icon: ShieldAlert },
+            ].map(tab => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`flex items-center gap-2 px-4 py-2 rounded-xl transition-all whitespace-nowrap ${
+                  activeTab === tab.id 
+                    ? 'bg-red-600 text-white shadow-lg shadow-red-600/30' 
+                    : 'text-slate-400 hover:text-white hover:bg-white/5'
+                }`}
+              >
+                <tab.icon size={18} />
+                <span className="font-bold text-xs md:text-sm uppercase tracking-tighter">{tab.label}</span>
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -663,6 +713,120 @@ export default function AdminPanel() {
           </motion.div>
         )}
 
+        {activeTab === 'streams' && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <div className="bg-slate-900/50 backdrop-blur-md border border-white/10 p-8 rounded-3xl">
+              <h3 className="text-2xl font-black mb-6 flex items-center gap-3">
+                <Tv className="text-blue-400" />
+                {editingStreamId ? 'Editar Transmisión' : 'Programar Transmisión'}
+              </h3>
+              <form onSubmit={handlePublishStream} className="space-y-4">
+                <input 
+                  type="text" 
+                  placeholder="Título de la Transmisión"
+                  className="w-full bg-white/5 border border-white/10 rounded-xl p-4 outline-none focus:border-blue-500"
+                  value={streamForm.title}
+                  onChange={e => setStreamForm({...streamForm, title: e.target.value})}
+                  required
+                />
+                <textarea 
+                  placeholder="Descripción (Película, Anime, etc.)"
+                  className="w-full bg-white/5 border border-white/10 rounded-xl p-4 outline-none focus:border-blue-500 h-24"
+                  value={streamForm.description}
+                  onChange={e => setStreamForm({...streamForm, description: e.target.value})}
+                />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <label className="text-[10px] text-slate-500 ml-1 font-bold uppercase">Fecha y Hora</label>
+                    <input 
+                      type="datetime-local" 
+                      className="w-full bg-white/5 border border-white/10 rounded-xl p-4 outline-none focus:border-blue-500"
+                      value={streamForm.scheduled_at}
+                      onChange={e => setStreamForm({...streamForm, scheduled_at: e.target.value})}
+                      required
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[10px] text-slate-500 ml-1 font-bold uppercase">URL de Imagen (Opcional)</label>
+                    <input 
+                      type="text" 
+                      placeholder="https://..."
+                      className="w-full bg-white/5 border border-white/10 rounded-xl p-4 outline-none focus:border-blue-500"
+                      value={streamForm.image_url}
+                      onChange={e => setStreamForm({...streamForm, image_url: e.target.value})}
+                    />
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] text-slate-500 ml-1 font-bold uppercase">Enlace de Transmisión (Rave/YouTube)</label>
+                  <input 
+                    type="text" 
+                    placeholder="https://..."
+                    className="w-full bg-white/5 border border-white/10 rounded-xl p-4 outline-none focus:border-blue-500"
+                    value={streamForm.stream_url}
+                    onChange={e => setStreamForm({...streamForm, stream_url: e.target.value})}
+                  />
+                </div>
+                <div className="flex gap-2">
+                  <button type="submit" className="flex-1 bg-blue-600 hover:bg-blue-500 text-white font-black py-4 rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg shadow-blue-600/20">
+                    <Plus size={20} />
+                    {editingStreamId ? 'ACTUALIZAR' : 'PROGRAMAR'}
+                  </button>
+                  {editingStreamId && (
+                    <button 
+                      type="button" 
+                      onClick={() => {
+                        setEditingStreamId(null);
+                        setStreamForm({ title: '', description: '', scheduled_at: '', stream_url: '', image_url: '' });
+                      }}
+                      className="px-6 bg-slate-800 hover:bg-slate-700 text-white font-black rounded-xl transition-all"
+                    >
+                      CANCELAR
+                    </button>
+                  )}
+                </div>
+              </form>
+            </div>
+
+            <div className="bg-slate-900/50 backdrop-blur-md border border-white/10 p-8 rounded-3xl overflow-y-auto max-h-[600px] custom-scrollbar">
+              <h3 className="text-2xl font-black mb-6">Próximas Transmisiones</h3>
+              <div className="space-y-4">
+                {streams.map(s => (
+                  <div key={s.id} className="p-4 bg-white/5 border border-white/10 rounded-2xl flex items-center justify-between group hover:border-blue-500/30 transition-all">
+                    <div>
+                      <h4 className="font-bold text-blue-400">{s.title}</h4>
+                      <p className="text-xs text-slate-500">{new Date(s.scheduled_at).toLocaleString()}</p>
+                    </div>
+                    <div className="flex gap-2">
+                      <button 
+                        onClick={() => {
+                          setEditingStreamId(s.id);
+                          setStreamForm({
+                            title: s.title,
+                            description: s.description,
+                            scheduled_at: s.scheduled_at.slice(0, 16),
+                            stream_url: s.stream_url || '',
+                            image_url: s.image_url || ''
+                          });
+                        }}
+                        className="p-2 hover:bg-blue-500/20 text-blue-400 rounded-lg transition-colors"
+                      >
+                        <Edit size={18} />
+                      </button>
+                      <button 
+                        onClick={() => handleDeleteStream(s.id)}
+                        className="p-2 hover:bg-red-500/20 text-red-400 rounded-lg transition-colors"
+                      >
+                        <Trash2 size={18} />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+                {streams.length === 0 && <p className="text-center text-slate-500 py-10">No hay transmisiones programadas</p>}
+              </div>
+            </div>
+          </div>
+        )}
         {activeTab === 'publish' && (
           <motion.div
             key="publish"
@@ -823,6 +987,15 @@ export default function AdminPanel() {
                   onChange={e => setAccountForm({...accountForm, details: e.target.value})}
                   required
                 />
+                <div className="space-y-2">
+                  <label className="text-xs text-slate-500 ml-1">Fecha de Expiración (Opcional)</label>
+                  <input 
+                    type="datetime-local" 
+                    className="w-full bg-white/5 border border-white/10 rounded-xl p-4 outline-none focus:border-yellow-500"
+                    value={accountForm.expires_at}
+                    onChange={e => setAccountForm({...accountForm, expires_at: e.target.value})}
+                  />
+                </div>
                 <RoleSelector form={accountForm} setForm={setAccountForm} />
                 <button type="submit" className="w-full bg-yellow-600 hover:bg-yellow-500 text-white font-black py-4 rounded-xl transition-all shadow-lg shadow-yellow-600/20 flex items-center justify-center gap-2">
                   <Plus size={20} />

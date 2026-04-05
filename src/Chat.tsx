@@ -6,7 +6,7 @@ import { Send, Trash2, AlertCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
 export default function Chat() {
-  const { user, token } = useAuth();
+  const { user, token, optimizationMode } = useAuth();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const socketRef = useRef<Socket | null>(null);
@@ -116,6 +116,7 @@ export default function Chat() {
   };
 
   const getAuraEffect = (role: string) => {
+    if (optimizationMode) return null;
     if (role === 'plus') return (
       <div className="absolute inset-0 rounded-2xl overflow-hidden pointer-events-none">
         <div className="absolute inset-0 bg-gradient-to-r from-cyan-500/10 via-transparent to-cyan-500/10 animate-pulse" />
@@ -208,30 +209,31 @@ export default function Chat() {
   };
 
   return (
-    <div className="max-w-4xl mx-auto h-[calc(100vh-10rem)] flex flex-col gap-4">
-      <div className="flex items-center justify-between">
-        <h2 className="text-3xl font-bold">Chat Global</h2>
+    <div className="max-w-4xl mx-auto flex-1 w-full flex flex-col gap-3">
+      <div className="flex items-center justify-between flex-none">
+        <h2 className="text-2xl md:text-3xl font-bold">Chat Global</h2>
         {user?.role === 'admin' && (
           <button 
             onClick={clearChat}
-            className="flex items-center gap-2 px-4 py-2 bg-red-500/20 text-red-400 hover:bg-red-500/30 rounded-xl transition-colors"
+            className="flex items-center gap-2 px-3 py-1.5 bg-red-500/20 text-red-400 hover:bg-red-500/30 rounded-xl transition-colors text-sm"
           >
-            <Trash2 size={18} /> Vaciar Chat
+            <Trash2 size={16} /> Vaciar Chat
           </button>
         )}
       </div>
 
       <div 
         ref={scrollRef}
-        className="flex-1 bg-slate-900/50 backdrop-blur-md rounded-2xl border border-white/10 p-6 overflow-y-auto custom-scrollbar flex flex-col gap-4"
+        className="flex-1 bg-slate-900/50 backdrop-blur-md rounded-2xl border border-white/10 p-3 md:p-6 overflow-y-auto custom-scrollbar flex flex-col gap-3"
       >
         <AnimatePresence initial={false}>
           {messages.map((msg) => (
             <motion.div
               key={msg.id}
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              className={`group relative p-4 rounded-2xl border ${getRoleStyle(msg.user_role)} max-w-[80%] ${msg.user_id === user?.id ? 'self-end' : 'self-start'}`}
+              initial={optimizationMode ? { opacity: 1 } : { opacity: 0, scale: 0.9, x: msg.user_id === user?.id ? 20 : -20 }}
+              animate={optimizationMode ? { opacity: 1 } : { opacity: 1, scale: 1, x: 0 }}
+              transition={{ type: "spring", stiffness: 260, damping: 20 }}
+              className={`group relative p-4 rounded-2xl border ${getRoleStyle(msg.user_role)} max-w-[85%] ${msg.user_id === user?.id ? 'self-end rounded-tr-none' : 'self-start rounded-tl-none'}`}
             >
               {getAuraEffect(msg.user_role)}
               <div className="relative z-10">

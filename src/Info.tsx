@@ -42,7 +42,7 @@ export default function InfoSection() {
           </div>
           <div className="space-y-2">
             <p className="text-slate-400 text-sm">Fundador: <span className="text-slate-100 font-bold">Fumiko</span></p>
-            <p className="text-slate-400 text-sm">Versión: <span className="text-slate-100 font-bold">2.5.0-Fantasy</span></p>
+            <p className="text-slate-400 text-sm">Versión: <span className="text-slate-100 font-bold">2.6.0 Keiko</span></p>
             <p className="text-slate-400 text-sm">Ubicación: <span className="text-slate-100 font-bold">Neko World</span></p>
           </div>
         </div>

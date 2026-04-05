@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
-import { LayoutDashboard, Lock, Star, Zap, Search, ExternalLink } from 'lucide-react';
+import { LayoutDashboard, Lock, Star, Zap, Search, ExternalLink, Clock } from 'lucide-react';
 import { useAuth } from './AuthContext';
 
 interface Account {
@@ -9,6 +9,7 @@ interface Account {
   description: string;
   details: string;
   allowed_roles: string[];
+  expires_at?: string;
 }
 
 export default function Accounts() {
@@ -92,7 +93,15 @@ export default function Accounts() {
                 }`}>
                   <LayoutDashboard size={20} />
                 </div>
-                <h3 className="text-xl font-bold">{acc.title}</h3>
+                <div>
+                  <h3 className="text-xl font-bold">{acc.title}</h3>
+                  {acc.expires_at && (
+                    <div className="flex items-center gap-1 text-[10px] text-amber-400 font-bold uppercase mt-0.5">
+                      <Clock size={10} />
+                      Expira: {new Date(acc.expires_at).toLocaleDateString()}
+                    </div>
+                  )}
+                </div>
               </div>
               <div className="flex flex-wrap gap-1 justify-end max-w-[150px]">
                 {acc.allowed_roles?.map(role => (
