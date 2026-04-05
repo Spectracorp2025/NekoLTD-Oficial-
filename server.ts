@@ -136,6 +136,25 @@ async function initDb() {
         description TEXT,
         details TEXT,
         allowed_roles TEXT[] DEFAULT ARRAY['normal', 'premium', 'plus', 'admin'],
+        expires_at TIMESTAMP,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+
+      -- Ensure expires_at column exists
+      DO $$ 
+      BEGIN 
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='accounts' AND column_name='expires_at') THEN
+          ALTER TABLE accounts ADD COLUMN expires_at TIMESTAMP;
+        END IF;
+      END $$;
+
+      CREATE TABLE IF NOT EXISTS streams (
+        id SERIAL PRIMARY KEY,
+        title TEXT NOT NULL,
+        description TEXT,
+        scheduled_at TIMESTAMP NOT NULL,
+        stream_url TEXT,
+        image_url TEXT,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
 
@@ -557,7 +576,15 @@ async function startServer() {
   }));
 
   app.get("/api/accounts", authenticateToken, catchAsync(async (req: Request, res: Response) => {
+    // Auto-delete expired accounts
+    await pool.query("DELETE FROM accounts WHERE expires_at IS NOT NULL AND expires_at < CURRENT_TIMESTAMP");
+    
     const result = await pool.query("SELECT * FROM accounts ORDER BY created_at DESC");
+    res.json(result.rows);
+  }));
+
+  app.get("/api/streams", authenticateToken, catchAsync(async (req: Request, res: Response) => {
+    const result = await pool.query("SELECT * FROM streams WHERE scheduled_at > CURRENT_TIMESTAMP - INTERVAL '2 hours' ORDER BY scheduled_at ASC");
     res.json(result.rows);
   }));
 
@@ -615,12 +642,37 @@ async function startServer() {
   }));
 
   app.post("/api/admin/accounts", authenticateToken, isAdmin, catchAsync(async (req: Request, res: Response) => {
-    const { title, description, details, allowed_roles } = req.body;
+    const { title, description, details, allowed_roles, expires_at } = req.body;
     const result = await pool.query(
-      "INSERT INTO accounts (title, description, details, allowed_roles) VALUES ($1, $2, $3, $4) RETURNING *",
-      [title, description, details, allowed_roles || ['normal', 'premium', 'plus', 'admin']]
+      "INSERT INTO accounts (title, description, details, allowed_roles, expires_at) VALUES ($1, $2, $3, $4, $5) RETURNING *",
+      [title, description, details, allowed_roles || ['normal', 'premium', 'plus', 'admin'], expires_at || null]
     );
     res.json(result.rows[0]);
+  }));
+
+  app.post("/api/admin/streams", authenticateToken, isAdmin, catchAsync(async (req: Request, res: Response) => {
+    const { title, description, scheduled_at, stream_url, image_url } = req.body;
+    const result = await pool.query(
+      "INSERT INTO streams (title, description, scheduled_at, stream_url, image_url) VALUES ($1, $2, $3, $4, $5) RETURNING *",
+      [title, description, scheduled_at, stream_url, image_url]
+    );
+    res.json(result.rows[0]);
+  }));
+
+  app.put("/api/admin/streams/:id", authenticateToken, isAdmin, catchAsync(async (req: Request, res: Response) => {
+    const { id } = req.params;
+    const { title, description, scheduled_at, stream_url, image_url } = req.body;
+    const result = await pool.query(
+      "UPDATE streams SET title = $1, description = $2, scheduled_at = $3, stream_url = $4, image_url = $5 WHERE id = $6 RETURNING *",
+      [title, description, scheduled_at, stream_url, image_url, id]
+    );
+    res.json(result.rows[0]);
+  }));
+
+  app.delete("/api/admin/streams/:id", authenticateToken, isAdmin, catchAsync(async (req: Request, res: Response) => {
+    const { id } = req.params;
+    await pool.query("DELETE FROM streams WHERE id = $1", [id]);
+    res.json({ success: true });
   }));
 
   app.delete("/api/admin/accounts/:id", authenticateToken, isAdmin, catchAsync(async (req: any, res: Response) => {
