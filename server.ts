@@ -116,6 +116,7 @@ async function initDb() {
         url TEXT NOT NULL,
         thumbnail_url TEXT,
         category TEXT DEFAULT 'juegos',
+        password TEXT,
         allowed_roles TEXT[] DEFAULT ARRAY['normal', 'premium', 'plus', 'admin'],
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
@@ -225,6 +226,7 @@ async function initDb() {
       -- Schema updates for existing tables
       ALTER TABLE games ADD COLUMN IF NOT EXISTS thumbnail_url TEXT;
       ALTER TABLE games ADD COLUMN IF NOT EXISTS category TEXT DEFAULT 'juegos';
+      ALTER TABLE games ADD COLUMN IF NOT EXISTS password TEXT;
       ALTER TABLE games ADD COLUMN IF NOT EXISTS allowed_roles TEXT[] DEFAULT ARRAY['normal', 'premium', 'plus', 'admin'];
       
       ALTER TABLE apps ADD COLUMN IF NOT EXISTS thumbnail_url TEXT;
@@ -610,10 +612,10 @@ async function startServer() {
 
   // Admin Content Management
   app.post("/api/admin/games", authenticateToken, isAdmin, catchAsync(async (req: Request, res: Response) => {
-    const { title, description, url, thumbnail_url, category, allowed_roles } = req.body;
+    const { title, description, url, thumbnail_url, category, password, allowed_roles } = req.body;
     const result = await pool.query(
-      "INSERT INTO games (title, description, url, thumbnail_url, category, allowed_roles) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *",
-      [title, description, url, thumbnail_url, category || 'juegos', allowed_roles || ['normal', 'premium', 'plus', 'admin']]
+      "INSERT INTO games (title, description, url, thumbnail_url, category, password, allowed_roles) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *",
+      [title, description, url, thumbnail_url, category || 'juegos', password || null, allowed_roles || ['normal', 'premium', 'plus', 'admin']]
     );
     res.json(result.rows[0]);
   }));
