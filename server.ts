@@ -137,15 +137,15 @@ async function initDb() {
         description TEXT,
         details TEXT,
         allowed_roles TEXT[] DEFAULT ARRAY['normal', 'premium', 'plus', 'admin'],
-        expires_at TIMESTAMP,
+        expires_at TIMESTAMPTZ,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
 
-      -- Ensure expires_at column exists
+      -- Ensure expires_at is TIMESTAMPTZ if table already exists
       DO $$ 
       BEGIN 
-        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='accounts' AND column_name='expires_at') THEN
-          ALTER TABLE accounts ADD COLUMN expires_at TIMESTAMP;
+        IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='accounts' AND column_name='expires_at') THEN
+          ALTER TABLE accounts ALTER COLUMN expires_at TYPE TIMESTAMPTZ USING expires_at AT TIME ZONE 'UTC';
         END IF;
       END $$;
 
@@ -153,11 +153,19 @@ async function initDb() {
         id SERIAL PRIMARY KEY,
         title TEXT NOT NULL,
         description TEXT,
-        scheduled_at TIMESTAMP NOT NULL,
+        scheduled_at TIMESTAMPTZ NOT NULL,
         stream_url TEXT,
         image_url TEXT,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
+
+      -- Ensure scheduled_at is TIMESTAMPTZ if table already exists
+      DO $$ 
+      BEGIN 
+        IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='streams' AND column_name='scheduled_at') THEN
+          ALTER TABLE streams ALTER COLUMN scheduled_at TYPE TIMESTAMPTZ USING scheduled_at AT TIME ZONE 'UTC';
+        END IF;
+      END $$;
 
       CREATE TABLE IF NOT EXISTS novels (
         id SERIAL PRIMARY KEY,
