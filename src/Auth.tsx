@@ -83,11 +83,11 @@ export default function Auth() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-6 relative overflow-hidden bg-[#05070a]">
+    <div className="min-h-screen flex items-center justify-center p-6 relative overflow-hidden bg-[#fdf2f8]">
       {/* Background Image */}
       <div className="absolute inset-0 z-0 pointer-events-none">
-        <div className="w-full h-full bg-main-background" />
-        <div className="absolute inset-0 bg-[#05070a]/80 backdrop-blur-[2px]" />
+        <div className="w-full h-full bg-main-background opacity-40" />
+        <div className="absolute inset-0 bg-gradient-to-br from-pink-100/50 via-white/30 to-purple-100/50 backdrop-blur-[1px]" />
       </div>
 
       {/* Character Stickers */}
@@ -137,20 +137,27 @@ export default function Auth() {
         animate={{ opacity: 1, scale: 1 }}
         className="relative z-10 w-full max-w-md mx-4"
       >
-        {/* Collaboration Badge - Moved outside to prevent clipping */}
+        {/* Decorative "Papers" behind to fix "open" feeling */}
+        <div className="absolute -inset-4 bg-white/40 rounded-[2.5rem] -rotate-2 z-[-1] shadow-xl" />
+        <div className="absolute -inset-2 bg-white/60 rounded-[2.5rem] rotate-1 z-[-1] shadow-lg" />
+
+        {/* Collaboration Badge */}
         <div className="flex justify-center mb-6">
           <motion.div 
             initial={{ y: -20, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
-            className="flex items-center gap-3 bg-white/10 backdrop-blur-md px-6 py-2 rounded-full border border-white/20 shadow-[0_0_20px_rgba(255,183,197,0.3)]"
+            className="flex items-center gap-3 bg-white/90 backdrop-blur-md px-6 py-2 rounded-full border border-pink-200 shadow-lg"
           >
             <span className="text-xs font-black text-spectra-pink uppercase tracking-widest">Spectra</span>
-            <div className="w-px h-4 bg-white/20 mx-1" />
+            <div className="w-px h-4 bg-pink-200 mx-1" />
             <span className="text-xs font-black text-spectra-blue uppercase tracking-widest">Doki Doki</span>
           </motion.div>
         </div>
 
-        <div className="spectra-card p-5 md:p-8 !overflow-visible">
+        <div className="bg-white/95 backdrop-blur-2xl rounded-[2rem] p-5 md:p-8 border-4 border-white shadow-[0_32px_64px_-12px_rgba(0,0,0,0.15)] relative overflow-hidden">
+          {/* Desk/Table Top Edge Accent */}
+          <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-spectra-pink via-spectra-purple to-spectra-blue opacity-80" />
+          
           <div className="text-center mb-6 md:mb-8 relative">
             {/* DDLC Logo Placeholder / Stylized Text */}
             <motion.div
@@ -166,11 +173,11 @@ export default function Auth() {
             <motion.h1 
             animate={{ scale: [1, 1.05, 1] }}
             transition={{ duration: 3, repeat: Infinity }}
-            className="text-3xl md:text-4xl font-black bg-gradient-to-r from-spectra-pink via-spectra-rose to-spectra-purple bg-clip-text text-transparent mb-1 drop-shadow-[0_0_15px_rgba(255,107,157,0.5)] uppercase tracking-widest"
+            className="text-3xl md:text-4xl font-black bg-gradient-to-r from-spectra-pink via-spectra-rose to-spectra-purple bg-clip-text text-transparent mb-1 uppercase tracking-widest"
           >
             SPECTRA
           </motion.h1>
-          <p className="text-xs md:text-sm text-slate-400 font-medium">{isLogin ? 'Bienvenido de vuelta' : 'Únete a nuestra comunidad'}</p>
+          <p className="text-xs md:text-sm text-slate-500 font-bold">{isLogin ? 'Bienvenido de vuelta' : 'Únete a nuestra comunidad'}</p>
         </div>
 
 
@@ -189,7 +196,7 @@ export default function Auth() {
                   required
                   type="text"
                   placeholder="Nombre Completo"
-                  className="w-full bg-white/5 border border-white/10 rounded-xl py-3 pl-10 pr-4 focus:outline-none focus:border-spectra-pink"
+                  className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl py-3 pl-10 pr-4 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-spectra-pink/50 focus:ring-4 focus:ring-spectra-pink/10 transition-all font-medium"
                   value={formData.name}
                   onChange={e => setFormData({...formData, name: e.target.value})}
                 />
@@ -201,18 +208,18 @@ export default function Auth() {
                     required
                     type="number"
                     placeholder="Edad"
-                    className="w-full bg-white/5 border border-white/10 rounded-xl py-3 pl-10 pr-4 focus:outline-none focus:border-spectra-pink"
+                    className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl py-3 pl-10 pr-4 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-spectra-pink/50 focus:ring-4 focus:ring-spectra-pink/10 transition-all font-medium"
                     value={formData.age}
                     onChange={e => setFormData({...formData, age: e.target.value})}
                   />
                 </div>
                 <div className="relative">
-                  <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
+                  <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
                   <input
                     required
                     type="text"
                     placeholder="País"
-                    className="w-full bg-white/5 border border-white/10 rounded-xl py-3 pl-10 pr-4 focus:outline-none focus:border-spectra-pink"
+                    className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl py-3 pl-10 pr-4 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-spectra-pink/50 focus:ring-4 focus:ring-spectra-pink/10 transition-all font-medium"
                     value={formData.country}
                     onChange={e => setFormData({...formData, country: e.target.value})}
                   />
@@ -227,19 +234,19 @@ export default function Auth() {
               required
               type="text"
               placeholder="Número de Celular"
-              className="w-full bg-white/5 border border-white/10 rounded-xl py-3 pl-10 pr-4 focus:outline-none focus:border-spectra-pink"
+              className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl py-3 pl-10 pr-4 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-spectra-pink/50 focus:ring-4 focus:ring-spectra-pink/10 transition-all font-medium"
               value={formData.phone}
               onChange={e => setFormData({...formData, phone: e.target.value})}
             />
           </div>
 
           <div className="relative">
-            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
+            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
             <input
               required
               type="password"
               placeholder="Contraseña"
-              className="w-full bg-white/5 border border-white/10 rounded-xl py-3 pl-10 pr-4 focus:outline-none focus:border-spectra-pink"
+              className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl py-3 pl-10 pr-4 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-spectra-pink/50 focus:ring-4 focus:ring-spectra-pink/10 transition-all font-medium"
               value={formData.password}
               onChange={e => setFormData({...formData, password: e.target.value})}
             />
@@ -259,8 +266,8 @@ export default function Auth() {
                     onClick={() => setFormData({...formData, role: r.id as any})}
                     className={`flex flex-col items-center gap-1 p-2 rounded-xl border transition-all ${
                       formData.role === r.id 
-                        ? `bg-${r.color}/20 border-${r.color} text-${r.color} shadow-[0_0_10px_rgba(0,0,0,0.2)]` 
-                        : 'bg-white/5 border-white/10 text-slate-500'
+                        ? `bg-${r.color}/10 border-${r.color} text-${r.color} shadow-sm` 
+                        : 'bg-slate-50 border-slate-100 text-slate-400'
                     }`}
                   >
                     <r.icon size={16} />
@@ -271,11 +278,11 @@ export default function Auth() {
 
               {(formData.role === 'premium' || formData.role === 'plus') && (
                 <div className="relative">
-                  <ShieldCheck className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
+                  <ShieldCheck className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
                   <input
                     type="text"
                     placeholder="Código de Activación"
-                    className="w-full bg-white/5 border border-white/10 rounded-xl py-3 pl-10 pr-4 focus:outline-none focus:border-spectra-pink"
+                    className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl py-3 pl-10 pr-4 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-spectra-pink/50 focus:ring-4 focus:ring-spectra-pink/10 transition-all font-medium"
                     value={formData.code}
                     onChange={e => setFormData({...formData, code: e.target.value})}
                   />
@@ -299,7 +306,7 @@ export default function Auth() {
         <div className="mt-8 text-center">
           <button 
             onClick={() => setIsLogin(!isLogin)}
-            className="text-sm text-slate-400 hover:text-white transition-colors"
+            className="text-sm text-slate-500 hover:text-spectra-pink transition-colors font-bold"
           >
             {isLogin ? '¿No tienes cuenta? Regístrate aquí' : '¿Ya eres miembro? Inicia sesión'}
           </button>
