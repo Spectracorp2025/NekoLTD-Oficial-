@@ -90,27 +90,8 @@ export default function Auth() {
         <div className="absolute inset-0 bg-gradient-to-br from-pink-100/50 via-white/30 to-purple-100/50 backdrop-blur-[1px]" />
       </div>
 
-      {/* Character Stickers */}
-      {!loading && (
-        <>
-          <motion.img
-            initial={{ opacity: 0, x: -50 }}
-            animate={{ opacity: 0.6, x: 0 }}
-            transition={{ delay: 0.5, duration: 1 }}
-            src="https://picsum.photos/seed/sayori/400/600"
-            className="fixed -bottom-20 -left-20 w-64 h-auto pointer-events-none z-0 grayscale hover:grayscale-0 transition-all duration-500"
-            referrerPolicy="no-referrer"
-          />
-          <motion.img
-            initial={{ opacity: 0, x: 50 }}
-            animate={{ opacity: 0.6, x: 0 }}
-            transition={{ delay: 0.7, duration: 1 }}
-            src="https://picsum.photos/seed/monika/400/600"
-            className="fixed -bottom-20 -right-20 w-64 h-auto pointer-events-none z-0 grayscale hover:grayscale-0 transition-all duration-500"
-            referrerPolicy="no-referrer"
-          />
-          {/* Floating Hearts */}
-          {[...Array(6)].map((_, i) => (
+      {/* Floating Hearts */}
+      {[...Array(6)].map((_, i) => (
             <motion.div
               key={i}
               initial={{ opacity: 0, y: 100, x: Math.random() * 100 - 50 }}
@@ -129,9 +110,7 @@ export default function Auth() {
               <Sparkles size={12 + Math.random() * 12} />
             </motion.div>
           ))}
-        </>
-      )}
-
+      
       <motion.div 
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
