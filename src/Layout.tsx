@@ -18,7 +18,7 @@ export default function Layout({ children, activeSection, onSectionChange }: {
   const { user, logout, optimizationMode, setOptimizationMode } = useAuth();
   const [isSidebarOpen, setIsSidebarOpen] = useState(window.innerWidth > 1024);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [isMuted, setIsMuted] = useState(true);
+  const [isMuted, setIsMuted] = useState(false);
   const [isChangingSection, setIsChangingSection] = useState(false);
   const audioRef = useRef<HTMLAudioElement>(null);
 
@@ -31,15 +31,27 @@ export default function Layout({ children, activeSection, onSectionChange }: {
     }
   }, [isMuted]);
 
-  // Auto-play on mount (if possible)
+  // Auto-play on mount and interaction
   useEffect(() => {
-    const timer = setTimeout(() => {
+    const playMusic = () => {
       if (audioRef.current && !isMuted) {
         audioRef.current.play().catch(() => {});
+        // Remove listeners once played
+        document.removeEventListener('click', playMusic);
+        document.removeEventListener('touchstart', playMusic);
       }
-    }, 1000);
-    return () => clearTimeout(timer);
-  }, []);
+    };
+
+    document.addEventListener('click', playMusic);
+    document.addEventListener('touchstart', playMusic);
+
+    const timer = setTimeout(playMusic, 1000);
+    return () => {
+      clearTimeout(timer);
+      document.removeEventListener('click', playMusic);
+      document.removeEventListener('touchstart', playMusic);
+    };
+  }, [isMuted]);
 
   useEffect(() => {
     const handleResize = () => {

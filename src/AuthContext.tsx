@@ -15,10 +15,33 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
-  const [token, setToken] = useState<string | null>(localStorage.getItem('token'));
+  const [token, setToken] = useState<string | null>(sessionStorage.getItem('token') || localStorage.getItem('token'));
   const [optimizationMode, setOptimizationMode] = useState<boolean>(() => {
     return localStorage.getItem('optimizationMode') === 'true';
   });
+
+  // Inactivity Logout (5 minutes)
+  useEffect(() => {
+    if (!token) return;
+
+    let timeout: NodeJS.Timeout;
+    const resetTimer = () => {
+      clearTimeout(timeout);
+      timeout = setTimeout(() => {
+        logout();
+        window.location.reload(); // Force refresh to login
+      }, 5 * 60 * 1000); // 5 minutes
+    };
+
+    const events = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart'];
+    events.forEach(event => document.addEventListener(event, resetTimer));
+    resetTimer();
+
+    return () => {
+      clearTimeout(timeout);
+      events.forEach(event => document.removeEventListener(event, resetTimer));
+    };
+  }, [token]);
 
   useEffect(() => {
     localStorage.setItem('optimizationMode', optimizationMode.toString());
@@ -36,6 +59,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       })
       .then(data => setUser(data))
       .catch(() => {
+        sessionStorage.removeItem('token');
         localStorage.removeItem('token');
         setToken(null);
         setUser(null);
@@ -47,12 +71,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [token]);
 
   const login = (newToken: string, newUser: User) => {
-    localStorage.setItem('token', newToken);
+    sessionStorage.setItem('token', newToken);
     setToken(newToken);
     setUser(newUser);
   };
 
   const logout = () => {
+    sessionStorage.removeItem('token');
     localStorage.removeItem('token');
     setToken(null);
     setUser(null);

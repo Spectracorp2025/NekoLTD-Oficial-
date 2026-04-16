@@ -8,6 +8,23 @@ export default function Auth() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const { login } = useAuth();
+  const audioRef = React.useRef<HTMLAudioElement>(null);
+
+  React.useEffect(() => {
+    const playMusic = () => {
+      if (audioRef.current) {
+        audioRef.current.play().catch(() => {});
+        document.removeEventListener('click', playMusic);
+        document.removeEventListener('touchstart', playMusic);
+      }
+    };
+    document.addEventListener('click', playMusic);
+    document.addEventListener('touchstart', playMusic);
+    return () => {
+      document.removeEventListener('click', playMusic);
+      document.removeEventListener('touchstart', playMusic);
+    };
+  }, []);
 
   // Form states
   const [formData, setFormData] = useState({
@@ -292,6 +309,7 @@ export default function Auth() {
 
       {/* Global Background Music */}
       <audio 
+        ref={audioRef}
         autoPlay 
         loop 
         src="/musica.mp3"
