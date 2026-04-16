@@ -36,12 +36,12 @@
 
   @media (min-width: 768px) {
     .bg-main-background {
-      background-image: url("/images/fondo PC.png");
+      background-image: url("/fondo_pc.png");
     }
   }
   @media (max-width: 767px) {
     .bg-main-background {
-      background-image: url("/images/fondo celular.png");
+      background-image: url("/fondo_celular.png");
     }
   }
 
