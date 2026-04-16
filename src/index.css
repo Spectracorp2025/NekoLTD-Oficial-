@@ -1,87 +1,77 @@
-@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=Inter:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;900&family=Inter:wght@300;400;500;600;700&display=swap');
 @import "tailwindcss";
 
 @theme {
-  --font-fantasy: "Cinzel", serif;
+  --font-display: "Outfit", sans-serif;
   --font-sans: "Inter", sans-serif;
+  
+  --color-spectra-pink: #ffb7c5;
+  --color-spectra-rose: #f06292;
+  --color-spectra-purple: #9575cd;
+  --color-spectra-violet: #673ab7;
+  --color-spectra-green: #81c784;
+  --color-spectra-emerald: #4caf50;
+  --color-spectra-blue: #64b5f6;
+  --color-spectra-cyan: #2196f3;
+  --color-spectra-yellow: #fff176;
+  --color-spectra-gold: #fbc02d;
 }
 
 @layer base {
   body {
-    @apply bg-[#05070a] text-slate-200 font-sans antialiased min-h-screen relative overflow-x-hidden;
-    background-image: url("/fondo.png");
-    background-attachment: fixed;
-    background-position: center;
-    background-size: cover;
-    background-repeat: no-repeat;
-  }
-
-  body::before {
-    content: "";
-    @apply fixed inset-0 bg-[#05070a]/80 backdrop-blur-[1px] -z-10;
+    @apply bg-[#1a1a1a] text-slate-100 font-sans antialiased min-h-screen relative overflow-x-hidden;
   }
 
   h1, h2, h3, h4, h5, h6 {
-    @apply font-fantasy tracking-wider;
-    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8), 0 0 15px rgba(185, 28, 28, 0.4);
+    @apply font-display tracking-tight;
   }
 
-  .text-fantasy {
-    @apply font-fantasy;
-    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.9);
+  .spectra-card {
+    @apply bg-white/5 backdrop-blur-md border border-white/10 rounded-3xl shadow-xl overflow-hidden;
   }
 
-  .fantasy-card {
-    @apply bg-[#0a0c14]/80 backdrop-blur-xl border border-red-900/20 rounded-3xl shadow-2xl;
-    box-shadow: 0 0 50px rgba(0, 0, 0, 0.7), inset 0 0 30px rgba(185, 28, 28, 0.05);
+  .bg-main-background {
+    @apply bg-cover bg-center bg-no-repeat opacity-40 transition-all duration-1000;
+  }
+
+  @media (min-width: 768px) {
+    .bg-main-background {
+      background-image: url("/images/fondo PC.png");
+    }
+  }
+  @media (max-width: 767px) {
+    .bg-main-background {
+      background-image: url("/images/fondo celular.png");
+    }
   }
 
   .custom-scrollbar::-webkit-scrollbar {
     width: 6px;
   }
   .custom-scrollbar::-webkit-scrollbar-track {
-    background: rgba(0, 0, 0, 0.4);
+    background: rgba(0, 0, 0, 0.2);
   }
   .custom-scrollbar::-webkit-scrollbar-thumb {
-    @apply bg-red-900/40 rounded-full border border-red-500/10;
+    @apply bg-spectra-pink/40 rounded-full;
   }
   .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-    @apply bg-red-800/60;
-  }
-
-  button:not(.no-fantasy), .btn-fantasy {
-    @apply font-fantasy uppercase tracking-tighter;
+    @apply bg-spectra-pink/60;
   }
 
   input, textarea, select {
-    @apply bg-[#0a0c14]/60 border border-red-900/30 focus:border-red-600/50 transition-all;
+    @apply bg-white/5 border border-white/10 focus:border-spectra-pink/50 rounded-xl px-4 py-2 outline-none transition-all;
   }
 
-  /* Mobile Optimizations */
-  @media (max-width: 768px) {
-    h1 { @apply text-3xl; }
-    h2 { @apply text-2xl; }
-    h3 { @apply text-xl; }
-    .fantasy-card { @apply rounded-2xl p-4; }
+  /* Optimization Mode */
+  .optimization-on .bg-main-background {
+    @apply hidden;
   }
-
-  /* Lightweight Overrides */
   .optimization-on * {
     animation: none !important;
     transition: none !important;
     box-shadow: none !important;
     backdrop-filter: none !important;
   }
-}
-
-@keyframes float {
-  0% { transform: translateY(0px); }
-  50% { transform: translateY(-10px); }
-  100% { transform: translateY(0px); }
-}
-
-.animate-float {
-  animation: float 4s ease-in-out infinite;
 }
 
 .no-scrollbar::-webkit-scrollbar {
