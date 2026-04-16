@@ -4,7 +4,7 @@ import {
   Users, BarChart3, Megaphone, ShieldAlert, Trash2, 
   UserMinus, UserPlus, CheckCircle, XCircle, MessageSquare,
   Search, Filter, Save, Plus, AlertTriangle, Trash, Gamepad2,
-  AppWindow, Book, Key, Play, FileText, Video, AlertCircle, X, ShoppingCart, Tv, Edit, Trash2 as TrashIcon
+  AppWindow, Book, Key, Play, FileText, Video, AlertCircle, X, ShoppingCart, Tv, Edit, Trash2 as TrashIcon, Share2
 } from 'lucide-react';
 import { useAuth } from './AuthContext';
 
@@ -63,6 +63,8 @@ export default function AdminPanel() {
   const [chapters, setChapters] = useState<any[]>([]);
   const [products, setProducts] = useState<any[]>([]);
   const [streams, setStreams] = useState<Stream[]>([]);
+  const [socialNetworks, setSocialNetworks] = useState<any[]>([]);
+  const [settings, setSettings] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [confirmAction, setConfirmAction] = useState<{ type: string, id?: number, label: string } | null>(null);
@@ -84,6 +86,7 @@ export default function AdminPanel() {
   const [productForm, setProductForm] = useState({ title: '', description: '', price: '', image_url: '' });
   const [streamForm, setStreamForm] = useState({ title: '', description: '', scheduled_at: '', stream_url: '', image_url: '' });
   const [editingStreamId, setEditingStreamId] = useState<number | null>(null);
+  const [socialNetworkForm, setSocialNetworkForm] = useState({ title: '', description: '', url: '', image_url: '' });
   const [chapterForm, setChapterForm] = useState({ novel_id: 0, title: '', order_index: 1, allowed_roles: ['normal', 'premium', 'plus', 'admin'] });
   const [contentForm, setContentForm] = useState({ novel_id: 0, chapter_id: 0, type: 'text', content: '', order_index: 1 });
 
@@ -132,15 +135,19 @@ export default function AdminPanel() {
       } else if (activeTab === 'stats') {
         const data = await safeFetch('/api/admin/stats');
         setStats(data);
-      } else if (activeTab === 'publish' || activeTab === 'manage' || activeTab === 'streams') {
-        const [g, a, acc, n, adData, p, s] = await Promise.all([
+      } else if (activeTab === 'settings') {
+        const data = await safeFetch('/api/admin/settings');
+        setSettings(data);
+      } else if (activeTab === 'publish' || activeTab === 'manage' || activeTab === 'streams' || activeTab === 'social-networks') {
+        const [g, a, acc, n, adData, p, s, sn] = await Promise.all([
           safeFetch('/api/games'),
           safeFetch('/api/apps'),
           safeFetch('/api/accounts'),
           safeFetch('/api/novels'),
           safeFetch('/api/ads'),
           safeFetch('/api/products'),
-          safeFetch('/api/streams')
+          safeFetch('/api/streams'),
+          safeFetch('/api/social-networks')
         ]);
         setGames(g);
         setApps(a);
@@ -149,6 +156,7 @@ export default function AdminPanel() {
         setAds(adData);
         setProducts(p);
         setStreams(s);
+        setSocialNetworks(sn);
       }
     } catch (error: any) {
       console.error('Error fetching admin data:', error);
@@ -381,6 +389,43 @@ export default function AdminPanel() {
     setConfirmAction(null);
   };
 
+  const handleUpdateSettings = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const res = await fetch('/api/admin/settings', {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(settings)
+      });
+      if (res.ok) {
+        setNotification({ message: 'Configuración actualizada correctamente', type: 'success' });
+      } else {
+        throw new Error('Error al actualizar configuración');
+      }
+    } catch (err: any) {
+      setNotification({ message: err.message, type: 'error' });
+    }
+  };
+
+  const handlePublishSocialNetwork = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const res = await fetch('/api/admin/social-networks', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify(socialNetworkForm)
+      });
+      if (res.ok) {
+        setNotification({ message: 'Red social publicada', type: 'success' });
+        setSocialNetworkForm({ title: '', description: '', url: '', image_url: '' });
+        fetchData();
+      }
+    } catch (error) { console.error(error); }
+  };
+
   const handlePublishChapter = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
@@ -550,27 +595,28 @@ export default function AdminPanel() {
 
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h2 className="text-3xl font-black bg-gradient-to-r from-red-600 to-amber-600 bg-clip-text text-transparent uppercase tracking-widest">
-            CENTRO DE MANDO
+          <h2 className="text-3xl font-black bg-gradient-to-r from-spectra-pink to-spectra-purple bg-clip-text text-transparent uppercase tracking-widest">
+            SPECTRA ADMIN
           </h2>
-          <p className="text-slate-400 font-medium">Gestión avanzada de Neko Ltd.</p>
+          <p className="text-slate-400 font-medium">Gestión avanzada temática DDLC.</p>
         </div>
-        <div className="flex bg-[#0a0c14]/80 backdrop-blur-md p-1 rounded-2xl border border-red-900/20 overflow-x-auto no-scrollbar max-w-full">
-          <div className="flex min-w-max">
+        <div className="flex bg-white/5 backdrop-blur-md p-1 rounded-2xl border border-white/10 overflow-x-auto custom-scrollbar max-w-full">
+          <div className="flex flex-nowrap min-w-max">
             {[
               { id: 'users', label: 'Usuarios', icon: Users },
               { id: 'stats', label: 'Estadísticas', icon: BarChart3 },
               { id: 'publish', label: 'Publicar', icon: Plus },
               { id: 'streams', label: 'Transmisiones', icon: Tv },
-              { id: 'manage', label: 'Gestionar', icon: Save },
+              { id: 'manage', label: 'Gestionar', icon: ShieldAlert },
               { id: 'reports', label: 'Reportes', icon: ShieldAlert },
+              { id: 'settings', label: 'Configuración', icon: Save },
             ].map(tab => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
                 className={`flex items-center gap-2 px-4 py-2 rounded-xl transition-all whitespace-nowrap ${
                   activeTab === tab.id 
-                    ? 'bg-red-600 text-white shadow-lg shadow-red-600/30' 
+                    ? 'bg-spectra-pink text-white shadow-lg shadow-spectra-pink/30' 
                     : 'text-slate-400 hover:text-white hover:bg-white/5'
                 }`}
               >
@@ -595,6 +641,68 @@ export default function AdminPanel() {
       )}
 
       <AnimatePresence mode="wait">
+        {activeTab === 'settings' && (
+          <div className="max-w-2xl mx-auto">
+            <div className="spectra-card p-8">
+              <h3 className="text-2xl font-black mb-6 flex items-center gap-3">
+                <Save className="text-spectra-pink" />
+                Configuración del Sistema
+              </h3>
+              <form onSubmit={handleUpdateSettings} className="space-y-6">
+                <div className="space-y-4">
+                  <h4 className="text-sm font-bold text-slate-500 uppercase tracking-wider">Códigos de Activación</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                      <label className="text-xs text-slate-400 ml-1">Código Premium</label>
+                      <input 
+                        type="text" 
+                        className="w-full bg-white/5 border border-white/10 rounded-xl p-4 outline-none focus:border-spectra-yellow"
+                        value={settings.code_premium || ''}
+                        onChange={e => setSettings({...settings, code_premium: e.target.value})}
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-xs text-slate-400 ml-1">Código Plus</label>
+                      <input 
+                        type="text" 
+                        className="w-full bg-white/5 border border-white/10 rounded-xl p-4 outline-none focus:border-spectra-pink"
+                        value={settings.code_plus || ''}
+                        onChange={e => setSettings({...settings, code_plus: e.target.value})}
+                      />
+                    </div>
+                    <div className="space-y-1 md:col-span-2">
+                      <label className="text-xs text-slate-400 ml-1">Código Administrador</label>
+                      <input 
+                        type="text" 
+                        className="w-full bg-white/5 border border-white/10 rounded-xl p-4 outline-none focus:border-spectra-purple"
+                        value={settings.code_admin || ''}
+                        onChange={e => setSettings({...settings, code_admin: e.target.value})}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-4 pt-4 border-t border-white/5">
+                  <h4 className="text-sm font-bold text-slate-500 uppercase tracking-wider">Información de la App</h4>
+                  <div className="space-y-1">
+                    <label className="text-xs text-slate-400 ml-1">Versión de la Plataforma</label>
+                    <input 
+                      type="text" 
+                      className="w-full bg-white/5 border border-white/10 rounded-xl p-4 outline-none focus:border-spectra-blue"
+                      value={settings.app_version || ''}
+                      onChange={e => setSettings({...settings, app_version: e.target.value})}
+                    />
+                  </div>
+                </div>
+
+                <button type="submit" className="w-full bg-spectra-pink hover:bg-spectra-rose text-white font-black py-4 rounded-xl transition-all shadow-lg shadow-spectra-pink/20 flex items-center justify-center gap-2">
+                  <Save size={20} />
+                  GUARDAR CAMBIOS
+                </button>
+              </form>
+            </div>
+          </div>
+        )}
         {activeTab === 'users' && (
           <motion.div
             key="users"
@@ -633,9 +741,9 @@ export default function AdminPanel() {
                       <p className="text-slate-400 text-sm">{u.phone} • {u.country} • {u.age} años</p>
                       <div className="flex gap-2 mt-1">
                         <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-full border ${
-                          u.role === 'admin' ? 'bg-purple-500/20 border-purple-500 text-purple-400' :
-                          u.role === 'plus' ? 'bg-cyan-500/20 border-cyan-500 text-cyan-400' :
-                          u.role === 'premium' ? 'bg-yellow-500/20 border-yellow-500 text-yellow-400' :
+                          u.role === 'admin' ? 'bg-spectra-pink/20 border-spectra-pink text-spectra-pink' :
+                          u.role === 'plus' ? 'bg-spectra-blue/20 border-spectra-blue text-spectra-blue' :
+                          u.role === 'premium' ? 'bg-spectra-yellow/20 border-spectra-yellow text-spectra-yellow' :
                           'bg-slate-500/20 border-slate-500 text-slate-400'
                         }`}>
                           {u.role}
@@ -708,41 +816,35 @@ export default function AdminPanel() {
                 </div>
               </>
             )}
-            <div className="md:col-span-3 bg-slate-900/50 backdrop-blur-md border border-white/10 p-8 rounded-3xl">
+            <div className="md:col-span-3 spectra-card p-8">
               <h3 className="text-xl font-bold mb-6 flex items-center gap-2">
-                <AlertTriangle className="text-yellow-500" />
+                <AlertTriangle className="text-spectra-yellow" />
                 Acciones Críticas
               </h3>
-              <button 
-                onClick={() => setConfirmAction({ type: 'clear_chat', label: 'Todo el chat global' })}
-                className="bg-red-500/20 text-red-400 border border-red-500/30 px-6 py-4 rounded-2xl font-black hover:bg-red-500 hover:text-white transition-all flex items-center gap-3"
-              >
-                <Trash2 size={24} />
-                LIMPIAR CHAT GLOBAL
-              </button>
+              <p className="text-slate-400 text-sm mb-4">No hay acciones críticas disponibles actualmente.</p>
             </div>
           </motion.div>
         )}
 
         {activeTab === 'streams' && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            <div className="bg-slate-900/50 backdrop-blur-md border border-white/10 p-8 rounded-3xl">
+            <div className="spectra-card p-8">
               <h3 className="text-2xl font-black mb-6 flex items-center gap-3">
-                <Tv className="text-blue-400" />
+                <Tv className="text-spectra-pink" />
                 {editingStreamId ? 'Editar Transmisión' : 'Programar Transmisión'}
               </h3>
               <form onSubmit={handlePublishStream} className="space-y-4">
                 <input 
                   type="text" 
                   placeholder="Título de la Transmisión"
-                  className="w-full bg-white/5 border border-white/10 rounded-xl p-4 outline-none focus:border-blue-500"
+                  className="w-full bg-white/5 border border-white/10 rounded-xl p-4 outline-none focus:border-spectra-pink"
                   value={streamForm.title}
                   onChange={e => setStreamForm({...streamForm, title: e.target.value})}
                   required
                 />
                 <textarea 
                   placeholder="Descripción (Película, Anime, etc.)"
-                  className="w-full bg-white/5 border border-white/10 rounded-xl p-4 outline-none focus:border-blue-500 h-24"
+                  className="w-full bg-white/5 border border-white/10 rounded-xl p-4 outline-none focus:border-spectra-pink h-24"
                   value={streamForm.description}
                   onChange={e => setStreamForm({...streamForm, description: e.target.value})}
                 />
@@ -751,7 +853,7 @@ export default function AdminPanel() {
                     <label className="text-[10px] text-slate-500 ml-1 font-bold uppercase">Fecha y Hora</label>
                     <input 
                       type="datetime-local" 
-                      className="w-full bg-white/5 border border-white/10 rounded-xl p-4 outline-none focus:border-blue-500"
+                      className="w-full bg-white/5 border border-white/10 rounded-xl p-4 outline-none focus:border-spectra-pink"
                       value={streamForm.scheduled_at}
                       onChange={e => setStreamForm({...streamForm, scheduled_at: e.target.value})}
                       required
@@ -762,7 +864,7 @@ export default function AdminPanel() {
                     <input 
                       type="text" 
                       placeholder="https://..."
-                      className="w-full bg-white/5 border border-white/10 rounded-xl p-4 outline-none focus:border-blue-500"
+                      className="w-full bg-white/5 border border-white/10 rounded-xl p-4 outline-none focus:border-spectra-pink"
                       value={streamForm.image_url}
                       onChange={e => setStreamForm({...streamForm, image_url: e.target.value})}
                     />
@@ -773,13 +875,13 @@ export default function AdminPanel() {
                   <input 
                     type="text" 
                     placeholder="https://..."
-                    className="w-full bg-white/5 border border-white/10 rounded-xl p-4 outline-none focus:border-blue-500"
+                    className="w-full bg-white/5 border border-white/10 rounded-xl p-4 outline-none focus:border-spectra-pink"
                     value={streamForm.stream_url}
                     onChange={e => setStreamForm({...streamForm, stream_url: e.target.value})}
                   />
                 </div>
                 <div className="flex gap-2">
-                  <button type="submit" className="flex-1 bg-blue-600 hover:bg-blue-500 text-white font-black py-4 rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg shadow-blue-600/20">
+                  <button type="submit" className="flex-1 bg-spectra-pink hover:bg-spectra-rose text-white font-black py-4 rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg shadow-spectra-pink/20">
                     <Plus size={20} />
                     {editingStreamId ? 'ACTUALIZAR' : 'PROGRAMAR'}
                   </button>
@@ -790,7 +892,7 @@ export default function AdminPanel() {
                         setEditingStreamId(null);
                         setStreamForm({ title: '', description: '', scheduled_at: '', stream_url: '', image_url: '' });
                       }}
-                      className="px-6 bg-slate-800 hover:bg-slate-700 text-white font-black rounded-xl transition-all"
+                      className="px-6 bg-white/10 hover:bg-white/20 text-white font-black rounded-xl transition-all"
                     >
                       CANCELAR
                     </button>
@@ -799,13 +901,13 @@ export default function AdminPanel() {
               </form>
             </div>
 
-            <div className="bg-slate-900/50 backdrop-blur-md border border-white/10 p-8 rounded-3xl overflow-y-auto max-h-[600px] custom-scrollbar">
+            <div className="spectra-card p-8 overflow-y-auto max-h-[600px] custom-scrollbar">
               <h3 className="text-2xl font-black mb-6">Próximas Transmisiones</h3>
               <div className="space-y-4">
                 {streams.map(s => (
-                  <div key={s.id} className="p-4 bg-white/5 border border-white/10 rounded-2xl flex items-center justify-between group hover:border-blue-500/30 transition-all">
+                  <div key={s.id} className="p-4 bg-white/5 border border-white/10 rounded-2xl flex items-center justify-between group hover:border-spectra-pink/30 transition-all">
                     <div>
-                      <h4 className="font-bold text-blue-400">{s.title}</h4>
+                      <h4 className="font-bold text-spectra-pink">{s.title}</h4>
                       <p className="text-xs text-slate-500">{new Date(s.scheduled_at).toLocaleString()}</p>
                     </div>
                     <div className="flex gap-2">
@@ -851,24 +953,67 @@ export default function AdminPanel() {
             exit={{ opacity: 0, y: -20 }}
             className="grid grid-cols-1 lg:grid-cols-2 gap-8"
           >
-            {/* Anuncio */}
-            <div className="bg-slate-900/50 backdrop-blur-md border border-white/10 p-8 rounded-3xl">
+            {/* Red Social */}
+            <div className="bg-white/5 backdrop-blur-md border border-white/10 p-8 rounded-3xl">
               <h3 className="text-2xl font-black mb-6 flex items-center gap-3">
-                <Megaphone className="text-blue-400" />
+                <Share2 className="text-spectra-pink" />
+                Publicar Red Social
+              </h3>
+              <form onSubmit={handlePublishSocialNetwork} className="space-y-4">
+                <input 
+                  type="text" 
+                  placeholder="Título (Ej: WhatsApp Oficial)"
+                  className="w-full bg-white/5 border border-white/10 rounded-xl p-4 outline-none focus:border-spectra-pink"
+                  value={socialNetworkForm.title}
+                  onChange={e => setSocialNetworkForm({...socialNetworkForm, title: e.target.value})}
+                  required
+                />
+                <textarea 
+                  placeholder="Breve descripción"
+                  className="w-full bg-white/5 border border-white/10 rounded-xl p-4 outline-none focus:border-spectra-pink h-24"
+                  value={socialNetworkForm.description}
+                  onChange={e => setSocialNetworkForm({...socialNetworkForm, description: e.target.value})}
+                />
+                <input 
+                  type="text" 
+                  placeholder="URL del enlace (https://...)"
+                  className="w-full bg-white/5 border border-white/10 rounded-xl p-4 outline-none focus:border-spectra-pink"
+                  value={socialNetworkForm.url}
+                  onChange={e => setSocialNetworkForm({...socialNetworkForm, url: e.target.value})}
+                  required
+                />
+                <input 
+                  type="text" 
+                  placeholder="URL de imagen/ícono (Opcional)"
+                  className="w-full bg-white/5 border border-white/10 rounded-xl p-4 outline-none focus:border-spectra-pink"
+                  value={socialNetworkForm.image_url}
+                  onChange={e => setSocialNetworkForm({...socialNetworkForm, image_url: e.target.value})}
+                />
+                <button type="submit" className="w-full bg-spectra-pink hover:bg-spectra-rose text-white font-black py-4 rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg shadow-spectra-pink/20">
+                  <Plus size={20} />
+                  PUBLICAR RED
+                </button>
+              </form>
+            </div>
+
+            {/* Anuncio */}
+            <div className="bg-white/5 backdrop-blur-md border border-white/10 p-8 rounded-3xl">
+              <h3 className="text-2xl font-black mb-6 flex items-center gap-3">
+                <Megaphone className="text-spectra-blue" />
                 Publicar Anuncio
               </h3>
               <form onSubmit={handlePublishAd} className="space-y-4">
                 <input 
                   type="text" 
                   placeholder="Título del Anuncio"
-                  className="w-full bg-white/5 border border-white/10 rounded-xl p-4 outline-none focus:border-blue-500"
+                  className="w-full bg-white/5 border border-white/10 rounded-xl p-4 outline-none focus:border-spectra-blue"
                   value={adForm.title}
                   onChange={e => setAdForm({...adForm, title: e.target.value})}
                   required
                 />
                 <textarea 
                   placeholder="Contenido del mensaje..."
-                  className="w-full bg-white/5 border border-white/10 rounded-xl p-4 outline-none focus:border-blue-500 h-32"
+                  className="w-full bg-white/5 border border-white/10 rounded-xl p-4 outline-none focus:border-spectra-blue h-32"
                   value={adForm.content}
                   onChange={e => setAdForm({...adForm, content: e.target.value})}
                   required
@@ -876,11 +1021,11 @@ export default function AdminPanel() {
                 <input 
                   type="text" 
                   placeholder="URL de Imagen/Video (Opcional)"
-                  className="w-full bg-white/5 border border-white/10 rounded-xl p-4 outline-none focus:border-blue-500"
+                  className="w-full bg-white/5 border border-white/10 rounded-xl p-4 outline-none focus:border-spectra-blue"
                   value={adForm.media_url}
                   onChange={e => setAdForm({...adForm, media_url: e.target.value})}
                 />
-                <button type="submit" className="w-full bg-blue-600 hover:bg-blue-500 text-white font-black py-4 rounded-xl transition-all shadow-lg shadow-blue-600/20 flex items-center justify-center gap-2">
+                <button type="submit" className="w-full bg-spectra-blue hover:bg-spectra-cyan text-white font-black py-4 rounded-xl transition-all shadow-lg shadow-spectra-blue/20 flex items-center justify-center gap-2">
                   <Plus size={20} />
                   PUBLICAR ANUNCIO
                 </button>
@@ -888,30 +1033,30 @@ export default function AdminPanel() {
             </div>
 
             {/* Juego */}
-            <div className="bg-slate-900/50 backdrop-blur-md border border-white/10 p-8 rounded-3xl">
+            <div className="bg-white/5 backdrop-blur-md border border-white/10 p-8 rounded-3xl">
               <h3 className="text-2xl font-black mb-6 flex items-center gap-3">
-                <Gamepad2 className="text-purple-400" />
+                <Gamepad2 className="text-spectra-purple" />
                 Agregar Juego
               </h3>
               <form onSubmit={handlePublishGame} className="space-y-4">
                 <input 
                   type="text" 
                   placeholder="Nombre del Juego"
-                  className="w-full bg-white/5 border border-white/10 rounded-xl p-4 outline-none focus:border-purple-500"
+                  className="w-full bg-white/5 border border-white/10 rounded-xl p-4 outline-none focus:border-spectra-purple"
                   value={gameForm.title}
                   onChange={e => setGameForm({...gameForm, title: e.target.value})}
                   required
                 />
                 <textarea 
                   placeholder="Descripción"
-                  className="w-full bg-white/5 border border-white/10 rounded-xl p-4 outline-none focus:border-purple-500"
+                  className="w-full bg-white/5 border border-white/10 rounded-xl p-4 outline-none focus:border-spectra-purple"
                   value={gameForm.description}
                   onChange={e => setGameForm({...gameForm, description: e.target.value})}
                 />
                 <input 
                   type="text" 
                   placeholder="URL del Juego (iframe)"
-                  className="w-full bg-white/5 border border-white/10 rounded-xl p-4 outline-none focus:border-purple-500"
+                  className="w-full bg-white/5 border border-white/10 rounded-xl p-4 outline-none focus:border-spectra-purple"
                   value={gameForm.url}
                   onChange={e => setGameForm({...gameForm, url: e.target.value})}
                   required
@@ -919,19 +1064,19 @@ export default function AdminPanel() {
                 <input 
                   type="text" 
                   placeholder="URL de Miniatura"
-                  className="w-full bg-white/5 border border-white/10 rounded-xl p-4 outline-none focus:border-purple-500"
+                  className="w-full bg-white/5 border border-white/10 rounded-xl p-4 outline-none focus:border-spectra-purple"
                   value={gameForm.thumbnail_url}
                   onChange={e => setGameForm({...gameForm, thumbnail_url: e.target.value})}
                 />
                 <input 
                   type="text" 
                   placeholder="Contraseña del Juego (Opcional)"
-                  className="w-full bg-white/5 border border-white/10 rounded-xl p-4 outline-none focus:border-purple-500"
+                  className="w-full bg-white/5 border border-white/10 rounded-xl p-4 outline-none focus:border-spectra-purple"
                   value={gameForm.password}
                   onChange={e => setGameForm({...gameForm, password: e.target.value})}
                 />
                 <RoleSelector form={gameForm} setForm={setGameForm} />
-                <button type="submit" className="w-full bg-purple-600 hover:bg-purple-500 text-white font-black py-4 rounded-xl transition-all shadow-lg shadow-purple-600/20 flex items-center justify-center gap-2">
+                <button type="submit" className="w-full bg-spectra-purple hover:bg-spectra-violet text-white font-black py-4 rounded-xl transition-all shadow-lg shadow-spectra-purple/20 flex items-center justify-center gap-2">
                   <Plus size={20} />
                   AGREGAR JUEGO
                 </button>
@@ -939,30 +1084,30 @@ export default function AdminPanel() {
             </div>
 
             {/* App */}
-            <div className="bg-slate-900/50 backdrop-blur-md border border-white/10 p-8 rounded-3xl">
+            <div className="spectra-card p-8">
               <h3 className="text-2xl font-black mb-6 flex items-center gap-3">
-                <AppWindow className="text-emerald-400" />
+                <AppWindow className="text-spectra-green" />
                 Agregar Aplicación
               </h3>
               <form onSubmit={handlePublishApp} className="space-y-4">
                 <input 
                   type="text" 
                   placeholder="Nombre de la App"
-                  className="w-full bg-white/5 border border-white/10 rounded-xl p-4 outline-none focus:border-emerald-500"
+                  className="w-full bg-white/5 border border-white/10 rounded-xl p-4 outline-none focus:border-spectra-green"
                   value={appForm.title}
                   onChange={e => setAppForm({...appForm, title: e.target.value})}
                   required
                 />
                 <textarea 
                   placeholder="Descripción"
-                  className="w-full bg-white/5 border border-white/10 rounded-xl p-4 outline-none focus:border-emerald-500"
+                  className="w-full bg-white/5 border border-white/10 rounded-xl p-4 outline-none focus:border-spectra-green"
                   value={appForm.description}
                   onChange={e => setAppForm({...appForm, description: e.target.value})}
                 />
                 <input 
                   type="text" 
                   placeholder="URL de Descarga/Acceso"
-                  className="w-full bg-white/5 border border-white/10 rounded-xl p-4 outline-none focus:border-emerald-500"
+                  className="w-full bg-white/5 border border-white/10 rounded-xl p-4 outline-none focus:border-spectra-green"
                   value={appForm.url}
                   onChange={e => setAppForm({...appForm, url: e.target.value})}
                   required
@@ -970,12 +1115,12 @@ export default function AdminPanel() {
                 <input 
                   type="text" 
                   placeholder="URL de Miniatura"
-                  className="w-full bg-white/5 border border-white/10 rounded-xl p-4 outline-none focus:border-emerald-500"
+                  className="w-full bg-white/5 border border-white/10 rounded-xl p-4 outline-none focus:border-spectra-green"
                   value={appForm.thumbnail_url}
                   onChange={e => setAppForm({...appForm, thumbnail_url: e.target.value})}
                 />
                 <RoleSelector form={appForm} setForm={setAppForm} />
-                <button type="submit" className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-black py-4 rounded-xl transition-all shadow-lg shadow-emerald-600/20 flex items-center justify-center gap-2">
+                <button type="submit" className="w-full bg-spectra-green hover:bg-spectra-emerald text-white font-black py-4 rounded-xl transition-all shadow-lg shadow-spectra-green/20 flex items-center justify-center gap-2">
                   <Plus size={20} />
                   AGREGAR APP
                 </button>
@@ -983,29 +1128,29 @@ export default function AdminPanel() {
             </div>
 
             {/* Cuenta */}
-            <div className="bg-slate-900/50 backdrop-blur-md border border-white/10 p-8 rounded-3xl">
+            <div className="spectra-card p-8">
               <h3 className="text-2xl font-black mb-6 flex items-center gap-3">
-                <Key className="text-yellow-400" />
+                <Key className="text-spectra-yellow" />
                 Agregar Cuenta
               </h3>
               <form onSubmit={handlePublishAccount} className="space-y-4">
                 <input 
                   type="text" 
                   placeholder="Título de la Cuenta"
-                  className="w-full bg-white/5 border border-white/10 rounded-xl p-4 outline-none focus:border-yellow-500"
+                  className="w-full bg-white/5 border border-white/10 rounded-xl p-4 outline-none focus:border-spectra-yellow"
                   value={accountForm.title}
                   onChange={e => setAccountForm({...accountForm, title: e.target.value})}
                   required
                 />
                 <textarea 
                   placeholder="Descripción / Instrucciones"
-                  className="w-full bg-white/5 border border-white/10 rounded-xl p-4 outline-none focus:border-yellow-500"
+                  className="w-full bg-white/5 border border-white/10 rounded-xl p-4 outline-none focus:border-spectra-yellow"
                   value={accountForm.description}
                   onChange={e => setAccountForm({...accountForm, description: e.target.value})}
                 />
                 <textarea 
                   placeholder="Credenciales (Usuario:Password)"
-                  className="w-full bg-white/5 border border-white/10 rounded-xl p-4 outline-none focus:border-yellow-500"
+                  className="w-full bg-white/5 border border-white/10 rounded-xl p-4 outline-none focus:border-spectra-yellow"
                   value={accountForm.details}
                   onChange={e => setAccountForm({...accountForm, details: e.target.value})}
                   required
@@ -1014,13 +1159,13 @@ export default function AdminPanel() {
                   <label className="text-xs text-slate-500 ml-1">Fecha de Expiración (Opcional)</label>
                   <input 
                     type="datetime-local" 
-                    className="w-full bg-white/5 border border-white/10 rounded-xl p-4 outline-none focus:border-yellow-500"
+                    className="w-full bg-white/5 border border-white/10 rounded-xl p-4 outline-none focus:border-spectra-yellow"
                     value={accountForm.expires_at}
                     onChange={e => setAccountForm({...accountForm, expires_at: e.target.value})}
                   />
                 </div>
                 <RoleSelector form={accountForm} setForm={setAccountForm} />
-                <button type="submit" className="w-full bg-yellow-600 hover:bg-yellow-500 text-white font-black py-4 rounded-xl transition-all shadow-lg shadow-yellow-600/20 flex items-center justify-center gap-2">
+                <button type="submit" className="w-full bg-spectra-yellow hover:bg-spectra-gold text-white font-black py-4 rounded-xl transition-all shadow-lg shadow-spectra-yellow/20 flex items-center justify-center gap-2">
                   <Plus size={20} />
                   AGREGAR CUENTA
                 </button>
@@ -1028,35 +1173,35 @@ export default function AdminPanel() {
             </div>
 
             {/* Novela */}
-            <div className="bg-slate-900/50 backdrop-blur-md border border-white/10 p-8 rounded-3xl">
+            <div className="spectra-card p-8">
               <h3 className="text-2xl font-black mb-6 flex items-center gap-3">
-                <Book className="text-pink-400" />
+                <Book className="text-spectra-pink" />
                 Nueva Novela Visual
               </h3>
               <form onSubmit={handlePublishNovel} className="space-y-4">
                 <input 
                   type="text" 
                   placeholder="Título de la Novela"
-                  className="w-full bg-white/5 border border-white/10 rounded-xl p-4 outline-none focus:border-pink-500"
+                  className="w-full bg-white/5 border border-white/10 rounded-xl p-4 outline-none focus:border-spectra-pink"
                   value={novelForm.title}
                   onChange={e => setNovelForm({...novelForm, title: e.target.value})}
                   required
                 />
                 <textarea 
                   placeholder="Sinopsis"
-                  className="w-full bg-white/5 border border-white/10 rounded-xl p-4 outline-none focus:border-pink-500"
+                  className="w-full bg-white/5 border border-white/10 rounded-xl p-4 outline-none focus:border-spectra-pink"
                   value={novelForm.description}
                   onChange={e => setNovelForm({...novelForm, description: e.target.value})}
                 />
                 <input 
                   type="text" 
                   placeholder="URL de Portada"
-                  className="w-full bg-white/5 border border-white/10 rounded-xl p-4 outline-none focus:border-pink-500"
+                  className="w-full bg-white/5 border border-white/10 rounded-xl p-4 outline-none focus:border-spectra-pink"
                   value={novelForm.cover_url}
                   onChange={e => setNovelForm({...novelForm, cover_url: e.target.value})}
                 />
                 <RoleSelector form={novelForm} setForm={setNovelForm} />
-                <button type="submit" className="w-full bg-pink-600 hover:bg-pink-500 text-white font-black py-4 rounded-xl transition-all shadow-lg shadow-pink-600/20 flex items-center justify-center gap-2">
+                <button type="submit" className="w-full bg-spectra-pink hover:bg-spectra-rose text-white font-black py-4 rounded-xl transition-all shadow-lg shadow-spectra-pink/20 flex items-center justify-center gap-2">
                   <Plus size={20} />
                   CREAR NOVELA
                 </button>
@@ -1064,14 +1209,14 @@ export default function AdminPanel() {
             </div>
 
             {/* Capítulo */}
-            <div className="bg-slate-900/50 backdrop-blur-md border border-white/10 p-8 rounded-3xl">
+            <div className="spectra-card p-8">
               <h3 className="text-2xl font-black mb-6 flex items-center gap-3">
-                <Play className="text-pink-400" />
+                <Play className="text-spectra-pink" />
                 Agregar Capítulo
               </h3>
               <form onSubmit={handlePublishChapter} className="space-y-4">
                 <select 
-                  className="w-full bg-white/5 border border-white/10 rounded-xl p-4 outline-none focus:border-pink-500"
+                  className="w-full bg-white/5 border border-white/10 rounded-xl p-4 outline-none focus:border-spectra-pink"
                   value={chapterForm.novel_id}
                   onChange={e => setChapterForm({...chapterForm, novel_id: parseInt(e.target.value)})}
                   required
@@ -1082,7 +1227,7 @@ export default function AdminPanel() {
                 <input 
                   type="text" 
                   placeholder="Título del Capítulo"
-                  className="w-full bg-white/5 border border-white/10 rounded-xl p-4 outline-none focus:border-pink-500"
+                  className="w-full bg-white/5 border border-white/10 rounded-xl p-4 outline-none focus:border-spectra-pink"
                   value={chapterForm.title}
                   onChange={e => setChapterForm({...chapterForm, title: e.target.value})}
                   required
@@ -1090,13 +1235,13 @@ export default function AdminPanel() {
                 <input 
                   type="number" 
                   placeholder="Orden"
-                  className="w-full bg-white/5 border border-white/10 rounded-xl p-4 outline-none focus:border-pink-500"
+                  className="w-full bg-white/5 border border-white/10 rounded-xl p-4 outline-none focus:border-spectra-pink"
                   value={chapterForm.order_index}
                   onChange={e => setChapterForm({...chapterForm, order_index: parseInt(e.target.value)})}
                   required
                 />
                 <RoleSelector form={chapterForm} setForm={setChapterForm} />
-                <button type="submit" className="w-full bg-pink-600/50 hover:bg-pink-500 text-white font-black py-4 rounded-xl transition-all flex items-center justify-center gap-2">
+                <button type="submit" className="w-full bg-spectra-pink/50 hover:bg-spectra-pink text-white font-black py-4 rounded-xl transition-all flex items-center justify-center gap-2">
                   <Plus size={20} />
                   AGREGAR CAPÍTULO
                 </button>
@@ -1104,15 +1249,15 @@ export default function AdminPanel() {
             </div>
 
             {/* Contenido */}
-            <div className="bg-slate-900/50 backdrop-blur-md border border-white/10 p-8 rounded-3xl lg:col-span-2">
+            <div className="spectra-card p-8 lg:col-span-2">
               <h3 className="text-2xl font-black mb-6 flex items-center gap-3">
-                <FileText className="text-blue-400" />
+                <FileText className="text-spectra-blue" />
                 Agregar Contenido a Capítulo
               </h3>
               <form onSubmit={handlePublishContent} className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <select 
-                    className="w-full bg-white/5 border border-white/10 rounded-xl p-4 outline-none focus:border-blue-500"
+                    className="w-full bg-white/5 border border-white/10 rounded-xl p-4 outline-none focus:border-spectra-blue"
                     value={contentForm.novel_id}
                     onChange={e => setContentForm({...contentForm, novel_id: parseInt(e.target.value), chapter_id: 0})}
                     required
@@ -1121,7 +1266,7 @@ export default function AdminPanel() {
                     {novels.map(n => <option key={n.id} value={n.id}>{n.title}</option>)}
                   </select>
                   <select 
-                    className="w-full bg-white/5 border border-white/10 rounded-xl p-4 outline-none focus:border-blue-500"
+                    className="w-full bg-white/5 border border-white/10 rounded-xl p-4 outline-none focus:border-spectra-blue"
                     value={contentForm.chapter_id}
                     onChange={e => setContentForm({...contentForm, chapter_id: parseInt(e.target.value)})}
                     required
@@ -1131,7 +1276,7 @@ export default function AdminPanel() {
                     {chapters.map(c => <option key={c.id} value={c.id}>{c.title}</option>)}
                   </select>
                   <select 
-                    className="w-full bg-white/5 border border-white/10 rounded-xl p-4 outline-none focus:border-blue-500"
+                    className="w-full bg-white/5 border border-white/10 rounded-xl p-4 outline-none focus:border-spectra-blue"
                     value={contentForm.type}
                     onChange={e => setContentForm({...contentForm, type: e.target.value})}
                   >
@@ -1145,7 +1290,7 @@ export default function AdminPanel() {
                   <div className="md:col-span-3">
                     <textarea 
                       placeholder="Contenido..."
-                      className="w-full bg-white/5 border border-white/10 rounded-xl p-4 outline-none focus:border-blue-500 h-32"
+                      className="w-full bg-white/5 border border-white/10 rounded-xl p-4 outline-none focus:border-spectra-blue h-32"
                       value={contentForm.content}
                       onChange={e => setContentForm({...contentForm, content: e.target.value})}
                       required
@@ -1155,12 +1300,12 @@ export default function AdminPanel() {
                     <input 
                       type="number" 
                       placeholder="Orden"
-                      className="w-full bg-white/5 border border-white/10 rounded-xl p-4 outline-none focus:border-blue-500"
+                      className="w-full bg-white/5 border border-white/10 rounded-xl p-4 outline-none focus:border-spectra-blue"
                       value={contentForm.order_index}
                       onChange={e => setContentForm({...contentForm, order_index: parseInt(e.target.value)})}
                       required
                     />
-                    <button type="submit" className="w-full h-full bg-blue-600 hover:bg-blue-500 text-white font-black py-4 rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg shadow-blue-600/20">
+                    <button type="submit" className="w-full h-full bg-spectra-blue hover:bg-spectra-cyan text-white font-black py-4 rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg shadow-spectra-blue/20">
                       <Plus size={20} />
                       AGREGAR
                     </button>
@@ -1170,23 +1315,23 @@ export default function AdminPanel() {
             </div>
 
             {/* Producto */}
-            <div className="bg-slate-900/50 backdrop-blur-md border border-white/10 p-8 rounded-3xl">
+            <div className="spectra-card p-8">
               <h3 className="text-2xl font-black mb-6 flex items-center gap-3">
-                <ShoppingCart className="text-emerald-400" />
+                <ShoppingCart className="text-spectra-green" />
                 Publicar Producto
               </h3>
               <form onSubmit={handlePublishProduct} className="space-y-4">
                 <input 
                   type="text" 
                   placeholder="Título del Producto"
-                  className="w-full bg-white/5 border border-white/10 rounded-xl p-4 outline-none focus:border-emerald-500"
+                  className="w-full bg-white/5 border border-white/10 rounded-xl p-4 outline-none focus:border-spectra-green"
                   value={productForm.title}
                   onChange={e => setProductForm({...productForm, title: e.target.value})}
                   required
                 />
                 <textarea 
                   placeholder="Descripción del producto"
-                  className="w-full bg-white/5 border border-white/10 rounded-xl p-4 outline-none focus:border-emerald-500"
+                  className="w-full bg-white/5 border border-white/10 rounded-xl p-4 outline-none focus:border-spectra-green"
                   value={productForm.description}
                   onChange={e => setProductForm({...productForm, description: e.target.value})}
                   required
@@ -1195,7 +1340,7 @@ export default function AdminPanel() {
                   type="number" 
                   step="0.01"
                   placeholder="Precio ($)"
-                  className="w-full bg-white/5 border border-white/10 rounded-xl p-4 outline-none focus:border-emerald-500"
+                  className="w-full bg-white/5 border border-white/10 rounded-xl p-4 outline-none focus:border-spectra-green"
                   value={productForm.price}
                   onChange={e => setProductForm({...productForm, price: e.target.value})}
                   required
@@ -1203,12 +1348,12 @@ export default function AdminPanel() {
                 <input 
                   type="text" 
                   placeholder="URL de Imagen"
-                  className="w-full bg-white/5 border border-white/10 rounded-xl p-4 outline-none focus:border-emerald-500"
+                  className="w-full bg-white/5 border border-white/10 rounded-xl p-4 outline-none focus:border-spectra-green"
                   value={productForm.image_url}
                   onChange={e => setProductForm({...productForm, image_url: e.target.value})}
                   required
                 />
-                <button type="submit" className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-black py-4 rounded-xl transition-all shadow-lg shadow-emerald-600/20 flex items-center justify-center gap-2">
+                <button type="submit" className="w-full bg-spectra-green hover:bg-spectra-emerald text-white font-black py-4 rounded-xl transition-all shadow-lg shadow-spectra-green/20 flex items-center justify-center gap-2">
                   <Plus size={20} />
                   PUBLICAR PRODUCTO
                 </button>

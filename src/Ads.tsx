@@ -32,12 +32,14 @@ export default function Ads() {
   return (
     <div className="max-w-4xl mx-auto space-y-8">
       <div className="flex items-center gap-4">
-        <div className="p-3 bg-blue-500/20 rounded-2xl text-blue-400">
+        <div className="p-3 bg-spectra-pink/20 rounded-2xl text-spectra-pink">
           <Bell size={32} />
         </div>
         <div>
-          <h2 className="text-3xl font-bold">Anuncios del Reino</h2>
-          <p className="text-slate-400">Mantente al día con las últimas novedades</p>
+          <h2 className="text-4xl font-black bg-gradient-to-r from-spectra-pink to-spectra-purple bg-clip-text text-transparent">
+            ANUNCIOS SPECTRA
+          </h2>
+          <p className="text-slate-400">Mantente al día con las últimas novedades de la colaboración.</p>
         </div>
       </div>
 
@@ -48,10 +50,10 @@ export default function Ads() {
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: i * 0.1 }}
-            className="bg-slate-900/50 backdrop-blur-md border border-white/10 rounded-3xl overflow-hidden"
+            className="spectra-card"
           >
             {ad.media_url && (
-              <div className="aspect-video w-full bg-slate-800 relative group">
+              <div className="aspect-video w-full bg-black/20 relative group">
                 {ad.media_type === 'video' || getYoutubeEmbedUrl(ad.media_url) ? (
                   getYoutubeEmbedUrl(ad.media_url) ? (
                     <iframe 
@@ -70,8 +72,8 @@ export default function Ads() {
             )}
             <div className="p-8">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-2xl font-bold">{ad.title}</h3>
-                <span className="text-xs text-slate-500">{new Date(ad.created_at).toLocaleDateString()}</span>
+                <h3 className="text-2xl font-bold text-spectra-pink">{ad.title}</h3>
+                <span className="text-xs text-slate-500 font-bold uppercase tracking-widest">{new Date(ad.created_at).toLocaleDateString()}</span>
               </div>
               <p className="text-slate-300 leading-relaxed whitespace-pre-wrap">{ad.content}</p>
             </div>

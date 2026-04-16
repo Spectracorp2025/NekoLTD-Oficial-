@@ -2,12 +2,6 @@ import React, { useState } from 'react';
 import { AuthProvider, useAuth } from './AuthContext';
 import Auth from './Auth';
 import Layout from './Layout';
-import Chat from './Chat';
-import AdminPanel from './AdminPanel';
-import Forums from './Forums';
-import Ads from './Ads';
-import Support from './Support';
-import Info from './Info';
 import Games from './Games';
 import Accounts from './Accounts';
 import Home from './Home';
@@ -16,6 +10,11 @@ import VisualNovels from './VisualNovels';
 import Apps from './Apps';
 import Store from './Store';
 import Streams from './Streams';
+import SocialNetworks from './SocialNetworks';
+import AdminPanel from './AdminPanel';
+import Ads from './Ads';
+import Support from './Support';
+import Info from './Info';
 
 function MainContent() {
   const { user, loading } = useAuth();
@@ -33,13 +32,12 @@ function MainContent() {
     switch (activeSection) {
       case 'home': return <Home />;
       case 'accounts': return <Accounts />;
-      case 'chat': return <Chat />;
       case 'videogames': return <Games />;
       case 'novels': return <VisualNovels />;
       case 'apps': return <Apps />;
       case 'store': return <Store />;
       case 'streams': return <Streams />;
-      case 'forums': return <Forums />;
+      case 'social-networks': return <SocialNetworks />;
       case 'support': return <Support />;
       case 'info': return <Info />;
       case 'ads': return <Ads />;

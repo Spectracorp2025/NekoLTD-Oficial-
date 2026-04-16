@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useAuth } from './AuthContext';
 import { 
-  LogOut, MessageSquare, LayoutDashboard, Gamepad2, Users, 
+  LogOut, Share2, LayoutDashboard, Gamepad2, Users, 
   Info, Bell, ShieldAlert, ChevronRight, ChevronLeft, Menu, X,
   Volume2, VolumeX, Home as HomeIcon, Book, AppWindow, ShoppingBag,
   Zap, ZapOff, Tv
@@ -74,12 +74,11 @@ export default function Layout({ children, activeSection, onSectionChange }: {
     { id: 'home', label: 'Inicio', icon: HomeIcon },
     { id: 'accounts', label: 'Cuentas', icon: LayoutDashboard },
     { id: 'streams', label: 'Transmisiones', icon: Tv },
-    { id: 'chat', label: 'Chat Global', icon: MessageSquare },
+    { id: 'social-networks', label: 'Redes', icon: Share2 },
     { id: 'videogames', label: 'Videojuegos', icon: Gamepad2 },
     { id: 'novels', label: 'Novelas', icon: Book },
     { id: 'apps', label: 'Aplicaciones', icon: AppWindow },
     { id: 'store', label: 'Tienda', icon: ShoppingBag },
-    { id: 'forums', label: 'Foros', icon: Users },
     { id: 'support', label: 'Soporte', icon: ShieldAlert },
     { id: 'info', label: 'Información', icon: Info },
     { id: 'ads', label: 'Anuncios', icon: Bell },
@@ -91,10 +90,10 @@ export default function Layout({ children, activeSection, onSectionChange }: {
 
   const getRoleColor = (role: string) => {
     switch (role) {
-      case 'admin': return 'text-purple-400';
-      case 'plus': return 'text-cyan-400';
-      case 'premium': return 'text-yellow-400';
-      default: return 'text-blue-400';
+      case 'admin': return 'text-spectra-pink';
+      case 'plus': return 'text-spectra-blue';
+      case 'premium': return 'text-spectra-yellow';
+      default: return 'text-slate-400';
     }
   };
 
@@ -107,24 +106,21 @@ export default function Layout({ children, activeSection, onSectionChange }: {
         {isChangingSection && <Loader />}
       </AnimatePresence>
 
-      {/* Background Image - Local file as requested */}
+      {/* Background Image - Responsive as requested */}
       <div className="fixed inset-0 z-0 pointer-events-none">
         {!optimizationMode && (
-          <div 
-            className="w-full h-full bg-cover bg-center bg-no-repeat opacity-40"
-            style={{ backgroundImage: 'url("/fondo.png")' }}
-          />
+          <div className="w-full h-full bg-main-background" />
         )}
         <div className={cn(
-          "absolute inset-0 bg-slate-950/60",
-          !optimizationMode && "backdrop-blur-[2px]"
+          "absolute inset-0 bg-black/40",
+          !optimizationMode && "backdrop-blur-[0.5px]"
         )} />
       </div>
 
       {/* Mobile Header */}
-      <header className="lg:hidden relative z-[60] flex-none flex items-center justify-between p-4 bg-[#0a0c14]/90 backdrop-blur-xl border-b border-red-900/20">
-        <h1 className="text-xl font-black bg-gradient-to-r from-red-500 to-amber-600 bg-clip-text text-transparent uppercase tracking-widest">
-          NEKO LTD
+      <header className="lg:hidden relative z-[60] flex-none flex items-center justify-between p-4 bg-white/5 backdrop-blur-xl border-b border-white/10">
+        <h1 className="text-xl font-black bg-gradient-to-r from-spectra-pink to-spectra-purple bg-clip-text text-transparent uppercase tracking-widest">
+          SPECTRA
         </h1>
         <div className="flex items-center gap-4">
           <button onClick={toggleMute} className="p-2 text-slate-400">
@@ -148,7 +144,7 @@ export default function Layout({ children, activeSection, onSectionChange }: {
             x: 0
           }}
           className={cn(
-            "hidden lg:flex bg-[#0a0c14]/95 backdrop-blur-xl border-r border-red-900/20 flex-col transition-all duration-300",
+            "hidden lg:flex bg-white/5 backdrop-blur-xl border-r border-white/10 flex-col transition-all duration-300",
             !isSidebarOpen && "items-center"
           )}
         >
@@ -157,9 +153,9 @@ export default function Layout({ children, activeSection, onSectionChange }: {
               <motion.h1 
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                className="text-2xl font-black bg-gradient-to-r from-red-500 to-amber-600 bg-clip-text text-transparent uppercase tracking-widest"
+                className="text-2xl font-black bg-gradient-to-r from-spectra-pink to-spectra-purple bg-clip-text text-transparent uppercase tracking-widest"
               >
-                NEKO LTD
+                SPECTRA
               </motion.h1>
             )}
             <button 
@@ -178,13 +174,13 @@ export default function Layout({ children, activeSection, onSectionChange }: {
                 className={cn(
                   "w-full flex items-center gap-4 p-3 rounded-xl transition-all duration-300 group",
                   activeSection === item.id 
-                    ? "bg-red-600/20 text-red-400 border border-red-600/30 shadow-[0_0_15px_rgba(220,38,38,0.2)]" 
+                    ? "bg-spectra-pink/20 text-spectra-pink border border-spectra-pink/30 shadow-[0_0_15px_rgba(255,183,197,0.2)]" 
                     : "hover:bg-white/5 text-slate-400 hover:text-slate-100"
                 )}
               >
                 <item.icon size={22} className={cn(
                   "transition-transform group-hover:scale-110 shrink-0",
-                  activeSection === item.id && "text-red-400"
+                  activeSection === item.id && "text-spectra-pink"
                 )} />
                 {isSidebarOpen && (
                   <motion.span 
@@ -199,14 +195,14 @@ export default function Layout({ children, activeSection, onSectionChange }: {
             ))}
           </nav>
 
-          <div className="p-4 border-t border-red-900/20 w-full space-y-2">
+          <div className="p-4 border-t border-white/10 w-full space-y-2">
             {/* Optimization Toggle */}
             <button
               onClick={() => setOptimizationMode(!optimizationMode)}
               className={cn(
                 "w-full flex items-center gap-4 p-3 rounded-xl transition-all duration-300 group",
                 optimizationMode 
-                  ? "bg-amber-500/20 text-amber-400 border border-amber-500/30 shadow-[0_0_15px_rgba(245,158,11,0.2)]" 
+                  ? "bg-spectra-gold/20 text-spectra-gold border border-spectra-gold/30 shadow-[0_0_15px_rgba(251,192,45,0.2)]" 
                   : "hover:bg-white/5 text-slate-400 hover:text-slate-100"
               )}
               title={optimizationMode ? "Desactivar Optimización" : "Activar Optimización"}
@@ -224,10 +220,10 @@ export default function Layout({ children, activeSection, onSectionChange }: {
             </button>
 
             <div className={cn(
-              "flex items-center gap-3 p-3 rounded-xl bg-red-950/30 border border-red-900/20",
+              "flex items-center gap-3 p-3 rounded-xl bg-white/5 border border-white/10",
               !isSidebarOpen && "justify-center"
             )}>
-              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-red-600 to-amber-700 flex items-center justify-center font-bold text-lg shrink-0 shadow-lg border border-red-500/30">
+              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-spectra-pink to-spectra-purple flex items-center justify-center font-bold text-lg shrink-0 shadow-lg border border-white/20">
                 {user?.name[0].toUpperCase()}
               </div>
               {isSidebarOpen && (
@@ -241,7 +237,7 @@ export default function Layout({ children, activeSection, onSectionChange }: {
               {isSidebarOpen && (
                 <button 
                   onClick={logout}
-                  className="p-2 hover:bg-red-500/20 text-red-400 rounded-lg transition-colors"
+                  className="p-2 hover:bg-spectra-pink/20 text-spectra-pink rounded-lg transition-colors"
                 >
                   <LogOut size={18} />
                 </button>
@@ -257,14 +253,14 @@ export default function Layout({ children, activeSection, onSectionChange }: {
               initial={{ opacity: 0, x: -300 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -300 }}
-              className="fixed inset-0 z-50 lg:hidden bg-[#05070a]/98 backdrop-blur-2xl p-6 flex flex-col"
+              className="fixed inset-0 z-50 lg:hidden bg-[#1a1a1a]/98 backdrop-blur-2xl p-6 flex flex-col"
             >
               <div className="flex items-center justify-between mb-8">
-                <h1 className="text-2xl font-black bg-gradient-to-r from-red-500 to-amber-600 bg-clip-text text-transparent uppercase tracking-widest">
-                  NEKO LTD
+                <h1 className="text-2xl font-black bg-gradient-to-r from-spectra-pink to-spectra-purple bg-clip-text text-transparent uppercase tracking-widest">
+                  SPECTRA
                 </h1>
-                <button onClick={() => setIsMobileMenuOpen(false)} className="p-1.5 bg-white/5 rounded-lg border border-red-900/20">
-                  <X size={20} className="text-red-400" />
+                <button onClick={() => setIsMobileMenuOpen(false)} className="p-1.5 bg-white/5 rounded-lg border border-white/10">
+                  <X size={20} className="text-spectra-pink" />
                 </button>
               </div>
 
@@ -276,24 +272,24 @@ export default function Layout({ children, activeSection, onSectionChange }: {
                     className={cn(
                       "w-full flex items-center gap-3 p-3 rounded-xl transition-all",
                       activeSection === item.id 
-                        ? "bg-red-600/20 text-red-400 border border-red-600/30 shadow-[0_0_10px_rgba(220,38,38,0.1)]" 
+                        ? "bg-spectra-pink/20 text-spectra-pink border border-spectra-pink/30 shadow-[0_0_10px_rgba(255,183,197,0.1)]" 
                         : "bg-white/5 text-slate-400"
                     )}
                   >
-                    <item.icon size={20} className={activeSection === item.id ? "text-red-400" : ""} />
+                    <item.icon size={20} className={activeSection === item.id ? "text-spectra-pink" : ""} />
                     <span className="font-bold text-base">{item.label}</span>
                   </button>
                 ))}
               </nav>
 
-              <div className="mt-4 pt-4 border-t border-red-900/20 flex flex-col gap-3">
+              <div className="mt-4 pt-4 border-t border-white/10 flex flex-col gap-3">
                 {/* Optimization Toggle Mobile - Smaller */}
                 <button
                   onClick={() => setOptimizationMode(!optimizationMode)}
                   className={cn(
                     "w-full flex items-center gap-3 p-2.5 rounded-xl transition-all",
                     optimizationMode 
-                      ? "bg-amber-500/20 text-amber-400 border border-amber-500/30 shadow-[0_0_10px_rgba(245,158,11,0.1)]" 
+                      ? "bg-spectra-gold/20 text-spectra-gold border border-spectra-gold/30 shadow-[0_0_10px_rgba(251,192,45,0.1)]" 
                       : "bg-white/5 text-slate-400"
                   )}
                 >
@@ -303,7 +299,7 @@ export default function Layout({ children, activeSection, onSectionChange }: {
 
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-red-600 to-amber-700 flex items-center justify-center font-bold text-lg border border-red-500/30">
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-spectra-pink to-spectra-purple flex items-center justify-center font-bold text-lg border border-white/20">
                       {user?.name[0].toUpperCase()}
                     </div>
                     <div className="min-w-0">
@@ -311,7 +307,7 @@ export default function Layout({ children, activeSection, onSectionChange }: {
                       <p className={cn("text-[10px] font-bold uppercase", getRoleColor(user?.role || ''))}>{user?.role}</p>
                     </div>
                   </div>
-                  <button onClick={logout} className="p-2.5 bg-red-500/20 text-red-400 rounded-xl border border-red-500/30">
+                  <button onClick={logout} className="p-2.5 bg-spectra-pink/20 text-spectra-pink rounded-xl border border-spectra-pink/30">
                     <LogOut size={18} />
                   </button>
                 </div>

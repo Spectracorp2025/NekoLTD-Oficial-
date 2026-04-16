@@ -59,7 +59,7 @@ export default function Accounts() {
           <h2 className="text-4xl font-black bg-gradient-to-r from-indigo-400 to-cyan-500 bg-clip-text text-transparent">
             CUENTAS COMPARTIDAS
           </h2>
-          <p className="text-slate-400">Acceso exclusivo a plataformas premium de Neko Ltd.</p>
+          <p className="text-slate-400">Acceso exclusivo a plataformas premium de Spectra.</p>
         </div>
         
         <div className="flex items-center gap-4 bg-slate-900/50 p-3 rounded-2xl border border-white/10 w-full md:w-96">

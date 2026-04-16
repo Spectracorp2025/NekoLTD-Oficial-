@@ -69,27 +69,91 @@ export default function Auth() {
     <div className="min-h-screen flex items-center justify-center p-6 relative overflow-hidden bg-[#05070a]">
       {/* Background Image */}
       <div className="absolute inset-0 z-0 pointer-events-none">
-        <div 
-          className="w-full h-full bg-cover bg-center bg-no-repeat opacity-40"
-          style={{ backgroundImage: 'url("/fondo.png")' }}
-        />
+        <div className="w-full h-full bg-main-background" />
         <div className="absolute inset-0 bg-[#05070a]/80 backdrop-blur-[2px]" />
       </div>
+
+      {/* Character Stickers */}
+      {!loading && (
+        <>
+          <motion.img
+            initial={{ opacity: 0, x: -50 }}
+            animate={{ opacity: 0.6, x: 0 }}
+            transition={{ delay: 0.5, duration: 1 }}
+            src="https://picsum.photos/seed/sayori/400/600"
+            className="fixed -bottom-20 -left-20 w-64 h-auto pointer-events-none z-0 grayscale hover:grayscale-0 transition-all duration-500"
+            referrerPolicy="no-referrer"
+          />
+          <motion.img
+            initial={{ opacity: 0, x: 50 }}
+            animate={{ opacity: 0.6, x: 0 }}
+            transition={{ delay: 0.7, duration: 1 }}
+            src="https://picsum.photos/seed/monika/400/600"
+            className="fixed -bottom-20 -right-20 w-64 h-auto pointer-events-none z-0 grayscale hover:grayscale-0 transition-all duration-500"
+            referrerPolicy="no-referrer"
+          />
+          {/* Floating Hearts */}
+          {[...Array(6)].map((_, i) => (
+            <motion.div
+              key={i}
+              initial={{ opacity: 0, y: 100, x: Math.random() * 100 - 50 }}
+              animate={{ 
+                opacity: [0, 0.4, 0], 
+                y: -200,
+                x: (Math.random() * 100 - 50) + (i * 20)
+              }}
+              transition={{ 
+                duration: 4 + Math.random() * 4, 
+                repeat: Infinity, 
+                delay: Math.random() * 5 
+              }}
+              className="fixed bottom-0 left-1/2 text-spectra-pink pointer-events-none z-0"
+            >
+              <Sparkles size={12 + Math.random() * 12} />
+            </motion.div>
+          ))}
+        </>
+      )}
 
       <motion.div 
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
-        className="relative z-10 w-full max-w-md bg-[#0a0c14]/90 backdrop-blur-2xl p-5 md:p-8 rounded-3xl border border-red-900/20 shadow-2xl shadow-red-900/30 mx-4"
+        className="relative z-10 w-full max-w-md mx-4"
       >
-        <div className="text-center mb-6 md:mb-8">
-          <motion.h1 
+        {/* Collaboration Badge - Moved outside to prevent clipping */}
+        <div className="flex justify-center mb-6">
+          <motion.div 
+            initial={{ y: -20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            className="flex items-center gap-3 bg-white/10 backdrop-blur-md px-6 py-2 rounded-full border border-white/20 shadow-[0_0_20px_rgba(255,183,197,0.3)]"
+          >
+            <span className="text-xs font-black text-spectra-pink uppercase tracking-widest">Spectra</span>
+            <div className="w-px h-4 bg-white/20 mx-1" />
+            <span className="text-xs font-black text-spectra-blue uppercase tracking-widest">Doki Doki</span>
+          </motion.div>
+        </div>
+
+        <div className="spectra-card p-5 md:p-8 !overflow-visible">
+          <div className="text-center mb-6 md:mb-8 relative">
+            {/* DDLC Logo Placeholder / Stylized Text */}
+            <motion.div
+              animate={{ rotate: [0, -2, 2, 0] }}
+              transition={{ duration: 5, repeat: Infinity }}
+              className="mb-4 inline-block"
+            >
+              <div className="bg-spectra-pink text-white px-4 py-1 rounded-lg font-black text-xl shadow-[4px_4px_0px_#9575cd] transform -rotate-2">
+                DOKI DOKI
+              </div>
+            </motion.div>
+            
+            <motion.h1 
             animate={{ scale: [1, 1.05, 1] }}
             transition={{ duration: 3, repeat: Infinity }}
-            className="text-3xl md:text-4xl font-black bg-gradient-to-r from-red-600 via-amber-500 to-red-800 bg-clip-text text-transparent mb-1 drop-shadow-[0_0_15px_rgba(220,38,38,0.5)] uppercase tracking-widest"
+            className="text-3xl md:text-4xl font-black bg-gradient-to-r from-spectra-pink via-spectra-rose to-spectra-purple bg-clip-text text-transparent mb-1 drop-shadow-[0_0_15px_rgba(255,107,157,0.5)] uppercase tracking-widest"
           >
-            NEKO LTD
+            SPECTRA
           </motion.h1>
-          <p className="text-xs md:text-sm text-slate-400 font-medium">{isLogin ? 'Bienvenido de vuelta, viajero' : 'Únete a nuestra hermandad'}</p>
+          <p className="text-xs md:text-sm text-slate-400 font-medium">{isLogin ? 'Bienvenido de vuelta' : 'Únete a nuestra comunidad'}</p>
         </div>
 
 
@@ -108,7 +172,7 @@ export default function Auth() {
                   required
                   type="text"
                   placeholder="Nombre Completo"
-                  className="w-full bg-white/5 border border-white/10 rounded-xl py-3 pl-10 pr-4 focus:outline-none focus:ring-2 focus:ring-red-600/50"
+                  className="w-full bg-white/5 border border-white/10 rounded-xl py-3 pl-10 pr-4 focus:outline-none focus:border-spectra-pink"
                   value={formData.name}
                   onChange={e => setFormData({...formData, name: e.target.value})}
                 />
@@ -120,7 +184,7 @@ export default function Auth() {
                     required
                     type="number"
                     placeholder="Edad"
-                    className="w-full bg-white/5 border border-white/10 rounded-xl py-3 pl-10 pr-4 focus:outline-none focus:ring-2 focus:ring-red-600/50"
+                    className="w-full bg-white/5 border border-white/10 rounded-xl py-3 pl-10 pr-4 focus:outline-none focus:border-spectra-pink"
                     value={formData.age}
                     onChange={e => setFormData({...formData, age: e.target.value})}
                   />
@@ -131,7 +195,7 @@ export default function Auth() {
                     required
                     type="text"
                     placeholder="País"
-                    className="w-full bg-white/5 border border-white/10 rounded-xl py-3 pl-10 pr-4 focus:outline-none focus:ring-2 focus:ring-red-600/50"
+                    className="w-full bg-white/5 border border-white/10 rounded-xl py-3 pl-10 pr-4 focus:outline-none focus:border-spectra-pink"
                     value={formData.country}
                     onChange={e => setFormData({...formData, country: e.target.value})}
                   />
@@ -146,7 +210,7 @@ export default function Auth() {
               required
               type="text"
               placeholder="Número de Celular"
-              className="w-full bg-white/5 border border-white/10 rounded-xl py-3 pl-10 pr-4 focus:outline-none focus:ring-2 focus:ring-red-600/50"
+              className="w-full bg-white/5 border border-white/10 rounded-xl py-3 pl-10 pr-4 focus:outline-none focus:border-spectra-pink"
               value={formData.phone}
               onChange={e => setFormData({...formData, phone: e.target.value})}
             />
@@ -158,7 +222,7 @@ export default function Auth() {
               required
               type="password"
               placeholder="Contraseña"
-              className="w-full bg-white/5 border border-white/10 rounded-xl py-3 pl-10 pr-4 focus:outline-none focus:ring-2 focus:ring-red-600/50"
+              className="w-full bg-white/5 border border-white/10 rounded-xl py-3 pl-10 pr-4 focus:outline-none focus:border-spectra-pink"
               value={formData.password}
               onChange={e => setFormData({...formData, password: e.target.value})}
             />
@@ -168,9 +232,9 @@ export default function Auth() {
             <>
               <div className="grid grid-cols-3 gap-2">
                 {[
-                  { id: 'normal', label: 'Normal', icon: User },
-                  { id: 'premium', label: 'Premium', icon: Sparkles },
-                  { id: 'plus', label: 'Plus', icon: Crown }
+                  { id: 'normal', label: 'Normal', icon: User, color: 'spectra-blue' },
+                  { id: 'premium', label: 'Premium', icon: Sparkles, color: 'spectra-yellow' },
+                  { id: 'plus', label: 'Plus', icon: Crown, color: 'spectra-pink' }
                 ].map((r) => (
                   <button
                     key={r.id}
@@ -178,7 +242,7 @@ export default function Auth() {
                     onClick={() => setFormData({...formData, role: r.id as any})}
                     className={`flex flex-col items-center gap-1 p-2 rounded-xl border transition-all ${
                       formData.role === r.id 
-                        ? 'bg-red-600/20 border-red-600 text-red-400 shadow-[0_0_10px_rgba(220,38,38,0.2)]' 
+                        ? `bg-${r.color}/20 border-${r.color} text-${r.color} shadow-[0_0_10px_rgba(0,0,0,0.2)]` 
                         : 'bg-white/5 border-white/10 text-slate-500'
                     }`}
                   >
@@ -194,11 +258,11 @@ export default function Auth() {
                   <input
                     type="text"
                     placeholder="Código de Activación"
-                    className="w-full bg-white/5 border border-white/10 rounded-xl py-3 pl-10 pr-4 focus:outline-none focus:ring-2 focus:ring-red-600/50"
+                    className="w-full bg-white/5 border border-white/10 rounded-xl py-3 pl-10 pr-4 focus:outline-none focus:border-spectra-pink"
                     value={formData.code}
                     onChange={e => setFormData({...formData, code: e.target.value})}
                   />
-                  <p className="text-[10px] text-red-400 mt-1 ml-1">
+                  <p className="text-[10px] text-spectra-pink mt-1 ml-1">
                     * Si no tienes código, dale a Registrarse para pedirlo por WhatsApp.
                   </p>
                 </div>
@@ -209,9 +273,9 @@ export default function Auth() {
           <button
             disabled={loading}
             type="submit"
-            className="w-full bg-gradient-to-r from-red-700 to-red-900 hover:from-red-600 hover:to-red-800 text-white font-bold py-3 rounded-xl shadow-lg shadow-red-900/40 transition-all active:scale-95 disabled:opacity-50 border border-red-500/30 uppercase tracking-widest"
+            className="w-full bg-spectra-pink hover:bg-spectra-rose text-white font-bold py-3 rounded-xl shadow-lg shadow-spectra-pink/20 transition-all active:scale-95 disabled:opacity-50 uppercase tracking-widest"
           >
-            {loading ? 'Procesando...' : (isLogin ? 'Entrar al Reino' : 'Completar Registro')}
+            {loading ? 'Procesando...' : (isLogin ? 'Iniciar Sesión' : 'Completar Registro')}
           </button>
         </form>
 
@@ -223,7 +287,8 @@ export default function Auth() {
             {isLogin ? '¿No tienes cuenta? Regístrate aquí' : '¿Ya eres miembro? Inicia sesión'}
           </button>
         </div>
-      </motion.div>
+      </div>
+    </motion.div>
 
       {/* Global Background Music */}
       <audio 

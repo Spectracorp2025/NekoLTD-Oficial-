@@ -6,45 +6,36 @@ export default function Loader() {
   const { optimizationMode } = useAuth();
 
   return (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950">
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-[#1a1a1a]">
       <div className="relative">
         {/* Outer Ring */}
         <motion.div
           animate={optimizationMode ? {} : { rotate: 360 }}
-          transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
-          className={`w-32 h-32 border-4 border-blue-500/20 border-t-blue-500 rounded-full ${optimizationMode ? 'animate-spin' : ''}`}
+          transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+          className="w-20 h-20 border-4 border-spectra-pink/20 border-t-spectra-pink rounded-full"
         />
         
-        {/* Inner Magic Circle */}
-        <motion.div
-          animate={optimizationMode ? {} : { rotate: -360 }}
-          transition={{ duration: 12, repeat: Infinity, ease: "linear" }}
-          className="absolute inset-2 border-2 border-dashed border-purple-500/40 rounded-full flex items-center justify-center"
-        >
-          <div className={`w-16 h-16 border border-cyan-400/30 rounded-full ${optimizationMode ? '' : 'animate-pulse'}`} />
-        </motion.div>
-
-        {/* Center Rune */}
+        {/* Center Icon */}
         <motion.div
           initial={optimizationMode ? { scale: 1, opacity: 1 } : { scale: 0.8, opacity: 0.5 }}
           animate={optimizationMode ? {} : { scale: 1.1, opacity: 1 }}
-          transition={{ duration: 2, repeat: Infinity, repeatType: "reverse" }}
+          transition={{ duration: 1, repeat: Infinity, repeatType: "reverse" }}
           className="absolute inset-0 flex items-center justify-center"
         >
-          <span className="text-4xl font-fantasy text-blue-400 drop-shadow-[0_0_10px_rgba(59,130,246,0.8)]">
-            ᚛
-          </span>
+          <div className="w-8 h-8 bg-spectra-pink rounded-lg rotate-45 shadow-[0_0_15px_rgba(255,183,197,0.6)]" />
         </motion.div>
       </div>
       
-      <motion.p
-        initial={optimizationMode ? { opacity: 1 } : { opacity: 0 }}
-        animate={optimizationMode ? {} : { opacity: 1 }}
-        transition={{ delay: 0.5 }}
-        className={`absolute bottom-20 text-blue-400 font-fantasy tracking-[0.3em] uppercase text-sm ${optimizationMode ? '' : 'animate-pulse'}`}
-      >
-        Invocando el Reino...
-      </motion.p>
+      {!optimizationMode && (
+        <motion.p
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.5 }}
+          className="absolute bottom-20 text-spectra-pink font-display font-black tracking-widest uppercase text-sm animate-pulse"
+        >
+          Cargando Spectra...
+        </motion.p>
+      )}
     </div>
   );
 }

@@ -9,10 +9,10 @@ export default function Home() {
 
   const getRoleIcon = () => {
     switch (user?.role) {
-      case 'admin': return <Crown className="text-amber-500" size={48} />;
-      case 'plus': return <Zap className="text-red-500" size={48} />;
-      case 'premium': return <Star className="text-amber-400" size={48} />;
-      default: return <Shield className="text-red-600" size={48} />;
+      case 'admin': return <Crown className="text-spectra-pink" size={48} />;
+      case 'plus': return <Zap className="text-spectra-blue" size={48} />;
+      case 'premium': return <Star className="text-spectra-yellow" size={48} />;
+      default: return <Shield className="text-slate-400" size={48} />;
     }
   };
 
@@ -23,13 +23,28 @@ export default function Home() {
   return (
     <div className="min-h-[80vh] flex flex-col items-center justify-center text-center px-4">
       <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.2 }}
+        className="mb-8 bg-gradient-to-r from-spectra-pink/20 to-spectra-blue/20 backdrop-blur-md border border-white/10 px-6 py-2 rounded-full flex items-center gap-3 shadow-lg"
+      >
+        <div className="flex -space-x-2">
+          <img src="https://picsum.photos/seed/monika/40/40" className="w-6 h-6 rounded-full border border-spectra-pink" referrerPolicy="no-referrer" />
+          <img src="https://picsum.photos/seed/sayori/40/40" className="w-6 h-6 rounded-full border border-spectra-blue" referrerPolicy="no-referrer" />
+        </div>
+        <span className="text-[10px] md:text-xs font-black text-white uppercase tracking-widest">
+          Evento Especial: <span className="text-spectra-pink">Spectra</span> x <span className="text-spectra-blue">Doki Doki</span>
+        </span>
+      </motion.div>
+
+      <motion.div
         initial={{ opacity: 0, scale: 0.5 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 0.8, type: "spring" }}
         className="mb-8 relative"
       >
-        <div className="absolute inset-0 bg-red-600/20 blur-[100px] rounded-full" />
-        <div className="relative z-10 p-6 bg-[#0a0c14]/60 backdrop-blur-md rounded-full border border-red-900/20 animate-float shadow-[0_0_30px_rgba(220,38,38,0.2)]">
+        <div className="absolute inset-0 bg-spectra-pink/20 blur-[100px] rounded-full" />
+        <div className="relative z-10 p-6 bg-white/5 backdrop-blur-md rounded-full border border-white/10 animate-pulse-soft shadow-[0_0_30px_rgba(255,183,197,0.2)]">
           {getRoleIcon()}
         </div>
       </motion.div>
@@ -40,11 +55,11 @@ export default function Home() {
         transition={{ delay: 0.3 }}
         className="space-y-4 w-full"
       >
-        <h1 className="text-3xl md:text-7xl font-black bg-gradient-to-r from-red-600 via-amber-500 to-red-800 bg-clip-text text-transparent uppercase tracking-widest leading-tight">
+        <h1 className="text-3xl md:text-7xl font-black bg-gradient-to-r from-spectra-pink via-spectra-purple to-spectra-pink bg-clip-text text-transparent uppercase tracking-widest leading-tight">
           Bienvenido, <br className="md:hidden" /> {user?.name}
         </h1>
-        <p className="text-base md:text-2xl text-slate-400 font-fantasy tracking-widest uppercase px-4">
-          Tu aventura en <span className="text-red-500">Neko Ltd</span> comienza ahora
+        <p className="text-base md:text-2xl text-slate-400 font-display tracking-widest uppercase px-4">
+          Tu aventura en <span className="text-spectra-pink">Spectra</span> comienza ahora
         </p>
       </motion.div>
 
@@ -55,17 +70,17 @@ export default function Home() {
         className="mt-8 md:mt-12 grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-6 w-full max-w-4xl px-2"
       >
         {[
-          { label: 'Rango', value: user?.role, icon: Sparkles },
-          { label: 'País', value: user?.country, icon: Shield },
-          { label: 'Estado', value: user?.status, icon: Zap },
+          { label: 'Rango', value: user?.role, icon: Sparkles, color: 'text-spectra-pink' },
+          { label: 'País', value: user?.country, icon: Shield, color: 'text-spectra-blue' },
+          { label: 'Estado', value: user?.status, icon: Zap, color: 'text-spectra-yellow' },
         ].map((stat, i) => (
           <div key={i} className={cn(
-            "fantasy-card p-4 md:p-6 flex flex-col items-center gap-1 md:gap-2 border-red-900/30",
+            "spectra-card p-4 md:p-6 flex flex-col items-center gap-1 md:gap-2",
             i === 2 && "col-span-2 md:col-span-1"
           )}>
-            <stat.icon className="text-red-500/50" size={16} />
+            <stat.icon className={stat.color} size={16} />
             <p className="text-[10px] text-slate-500 uppercase font-bold tracking-tighter">{stat.label}</p>
-            <p className="text-sm md:text-lg font-fantasy uppercase text-red-100 truncate w-full">{stat.value}</p>
+            <p className="text-sm md:text-lg font-display font-black uppercase text-white truncate w-full">{stat.value}</p>
           </div>
         ))}
       </motion.div>
@@ -77,7 +92,7 @@ export default function Home() {
         className="mt-12"
       >
         <p className="text-slate-500 text-sm italic">
-          "Que la magia de Neko guíe tus pasos en este reino digital"
+          "Cada día es una oportunidad para escribir un nuevo poema en Spectra"
         </p>
       </motion.div>
     </div>
