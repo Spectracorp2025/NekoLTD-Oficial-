@@ -58,47 +58,25 @@ async function initDb() {
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
 
-      CREATE TABLE IF NOT EXISTS chats (
-        id SERIAL PRIMARY KEY,
-        user_id INTEGER,
-        message TEXT NOT NULL,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      CREATE TABLE IF NOT EXISTS settings (
+        key TEXT PRIMARY KEY,
+        value TEXT NOT NULL
       );
 
-      -- Ensure no foreign key constraint exists on chats.user_id to allow virtual admin (ID 0)
-      ALTER TABLE chats DROP CONSTRAINT IF EXISTS chats_user_id_fkey;
+      -- Initialize default codes if not present
+      INSERT INTO settings (key, value) VALUES ('code_premium', '15108') ON CONFLICT DO NOTHING;
+      INSERT INTO settings (key, value) VALUES ('code_plus', '1052023') ON CONFLICT DO NOTHING;
+      INSERT INTO settings (key, value) VALUES ('code_admin', 'nekoadmin2026') ON CONFLICT DO NOTHING;
+      INSERT INTO settings (key, value) VALUES ('app_version', '3.0.0 SPECTRA') ON CONFLICT DO NOTHING;
 
-      CREATE TABLE IF NOT EXISTS forums (
+      CREATE TABLE IF NOT EXISTS social_networks (
         id SERIAL PRIMARY KEY,
-        user_id INTEGER,
         title TEXT NOT NULL,
-        content TEXT NOT NULL,
+        description TEXT,
+        url TEXT NOT NULL,
+        image_url TEXT,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
-
-      -- Ensure no foreign key constraint exists on forums.user_id to allow virtual admin (ID 0)
-      ALTER TABLE forums DROP CONSTRAINT IF EXISTS forums_user_id_fkey;
-
-      CREATE TABLE IF NOT EXISTS forum_comments (
-        id SERIAL PRIMARY KEY,
-        forum_id INTEGER REFERENCES forums(id) ON DELETE CASCADE,
-        user_id INTEGER,
-        content TEXT NOT NULL,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      );
-      ALTER TABLE forum_comments DROP CONSTRAINT IF EXISTS forum_comments_user_id_fkey;
-
-      CREATE TABLE IF NOT EXISTS forum_likes (
-        id SERIAL PRIMARY KEY,
-        forum_id INTEGER REFERENCES forums(id) ON DELETE CASCADE,
-        user_id INTEGER,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        UNIQUE(forum_id, user_id)
-      );
-      ALTER TABLE forum_likes DROP CONSTRAINT IF EXISTS forum_likes_user_id_fkey;
-
-      -- Ensure no foreign key constraint exists on reports.user_id to allow virtual admin (ID 0)
-      ALTER TABLE reports DROP CONSTRAINT IF EXISTS reports_user_id_fkey;
 
       CREATE TABLE IF NOT EXISTS ads (
         id SERIAL PRIMARY KEY,
@@ -314,14 +292,19 @@ async function startServer() {
   app.post("/api/auth/register", catchAsync(async (req: Request, res: Response) => {
     const { name, age, country, phone, password, role, code } = req.body;
     
+    // Fetch codes from settings
+    const settingsRes = await pool.query("SELECT * FROM settings");
+    const settings: Record<string, string> = {};
+    settingsRes.rows.forEach(row => settings[row.key] = row.value);
+
     // Only require code for non-normal roles
-    if (role === 'premium' && code !== '15108') {
+    if (role === 'premium' && code !== settings.code_premium) {
       return res.status(400).json({ error: "Código Premium inválido" });
     }
-    if (role === 'plus' && code !== '1052023') {
+    if (role === 'plus' && code !== settings.code_plus) {
       return res.status(400).json({ error: "Código Plus inválido" });
     }
-    if (role === 'admin' && code !== 'nekoadmin2026') {
+    if (role === 'admin' && code !== settings.code_admin) {
       return res.status(400).json({ error: "Código Admin inválido" });
     }
 
@@ -359,116 +342,24 @@ async function startServer() {
     res.json(result.rows[0]);
   }));
 
-  // Chat
-  app.get("/api/chat", authenticateToken, catchAsync(async (req: Request, res: Response) => {
-    const result = await pool.query(`
-      SELECT c.*, 
-        CASE WHEN c.user_id = 0 THEN 'Fumiko' ELSE u.name END as user_name,
-        CASE WHEN c.user_id = 0 THEN 'admin' ELSE u.role END as user_role 
-      FROM chats c 
-      LEFT JOIN users u ON c.user_id = u.id 
-      ORDER BY c.created_at ASC
-    `);
+  // Social Networks
+  app.get("/api/social-networks", authenticateToken, catchAsync(async (req: Request, res: Response) => {
+    const result = await pool.query("SELECT * FROM social_networks ORDER BY created_at DESC");
     res.json(result.rows);
   }));
 
-  // Forums
-  app.get("/api/forums", authenticateToken, catchAsync(async (req: Request, res: Response) => {
-    const result = await pool.query(`
-      SELECT f.*, 
-        CASE WHEN f.user_id = 0 THEN 'Fumiko' ELSE u.name END as user_name,
-        CASE WHEN f.user_id = 0 THEN 'admin' ELSE u.role END as user_role,
-        (SELECT count(*) FROM forum_comments WHERE forum_id = f.id) as comment_count,
-        (SELECT count(*) FROM forum_likes WHERE forum_id = f.id) as like_count,
-        EXISTS(SELECT 1 FROM forum_likes WHERE forum_id = f.id AND user_id = $1) as user_liked
-      FROM forums f
-      LEFT JOIN users u ON f.user_id = u.id
-      ORDER BY f.created_at DESC
-    `, [req.user?.id]);
-    res.json(result.rows);
-  }));
-
-  app.get("/api/forums/:id", authenticateToken, catchAsync(async (req: Request, res: Response) => {
-    const { id } = req.params;
-    const forumResult = await pool.query(`
-      SELECT f.*, 
-        CASE WHEN f.user_id = 0 THEN 'Fumiko' ELSE u.name END as user_name,
-        CASE WHEN f.user_id = 0 THEN 'admin' ELSE u.role END as user_role,
-        (SELECT count(*) FROM forum_likes WHERE forum_id = f.id) as like_count,
-        EXISTS(SELECT 1 FROM forum_likes WHERE forum_id = f.id AND user_id = $2) as user_liked
-      FROM forums f
-      LEFT JOIN users u ON f.user_id = u.id
-      WHERE f.id = $1
-    `, [id, req.user?.id]);
-
-    if (forumResult.rows.length === 0) {
-      return res.status(404).json({ error: "Forum post not found" });
-    }
-
-    const commentsResult = await pool.query(`
-      SELECT c.*, 
-        CASE WHEN c.user_id = 0 THEN 'Fumiko' ELSE u.name END as user_name,
-        CASE WHEN c.user_id = 0 THEN 'admin' ELSE u.role END as user_role
-      FROM forum_comments c
-      LEFT JOIN users u ON c.user_id = u.id
-      WHERE c.forum_id = $1
-      ORDER BY c.created_at ASC
-    `, [id]);
-
-    res.json({
-      ...forumResult.rows[0],
-      comments: commentsResult.rows
-    });
-  }));
-
-  app.post("/api/forums", authenticateToken, catchAsync(async (req: any, res: Response) => {
-    const { title, content } = req.body;
+  app.post("/api/admin/social-networks", authenticateToken, isAdmin, catchAsync(async (req: Request, res: Response) => {
+    const { title, description, url, image_url } = req.body;
     const result = await pool.query(
-      "INSERT INTO forums (user_id, title, content) VALUES ($1, $2, $3) RETURNING *",
-      [req.user.id, title, content]
+      "INSERT INTO social_networks (title, description, url, image_url) VALUES ($1, $2, $3, $4) RETURNING *",
+      [title, description, url, image_url]
     );
     res.json(result.rows[0]);
   }));
 
-  app.post("/api/forums/:id/like", authenticateToken, catchAsync(async (req: any, res: Response) => {
+  app.delete("/api/admin/social-networks/:id", authenticateToken, isAdmin, catchAsync(async (req: Request, res: Response) => {
     const { id } = req.params;
-    const userId = req.user.id;
-    
-    // Check if already liked
-    const check = await pool.query("SELECT * FROM forum_likes WHERE forum_id = $1 AND user_id = $2", [id, userId]);
-    
-    if (check.rows.length > 0) {
-      await pool.query("DELETE FROM forum_likes WHERE forum_id = $1 AND user_id = $2", [id, userId]);
-      res.json({ liked: false });
-    } else {
-      await pool.query("INSERT INTO forum_likes (forum_id, user_id) VALUES ($1, $2)", [id, userId]);
-      res.json({ liked: true });
-    }
-  }));
-
-  app.post("/api/forums/:id/comments", authenticateToken, catchAsync(async (req: any, res: Response) => {
-    const { id } = req.params;
-    const { content } = req.body;
-    const result = await pool.query(
-      "INSERT INTO forum_comments (forum_id, user_id, content) VALUES ($1, $2, $3) RETURNING *",
-      [req.user.id, id, content]
-    );
-    
-    const fullComment = await pool.query(`
-      SELECT c.*, 
-        CASE WHEN c.user_id = 0 THEN 'Fumiko' ELSE u.name END as user_name,
-        CASE WHEN c.user_id = 0 THEN 'admin' ELSE u.role END as user_role
-      FROM forum_comments c
-      LEFT JOIN users u ON c.user_id = u.id
-      WHERE c.id = $1
-    `, [result.rows[0].id]);
-
-    res.json(fullComment.rows[0]);
-  }));
-
-  app.delete("/api/admin/forums/:id", authenticateToken, isAdmin, catchAsync(async (req: any, res: Response) => {
-    const { id } = req.params;
-    await pool.query("DELETE FROM forums WHERE id = $1", [id]);
+    await pool.query("DELETE FROM social_networks WHERE id = $1", [id]);
     res.json({ success: true });
   }));
 
@@ -544,12 +435,25 @@ async function startServer() {
     });
   }));
 
+  app.get("/api/admin/settings", authenticateToken, isAdmin, catchAsync(async (req: Request, res: Response) => {
+    const result = await pool.query("SELECT * FROM settings");
+    const settings: Record<string, string> = {};
+    result.rows.forEach(row => settings[row.key] = row.value);
+    res.json(settings);
+  }));
+
+  app.post("/api/admin/settings", authenticateToken, isAdmin, catchAsync(async (req: Request, res: Response) => {
+    const updates = req.body; // { key: value, ... }
+    for (const [key, value] of Object.entries(updates)) {
+      await pool.query(
+        "INSERT INTO settings (key, value) VALUES ($1, $2) ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value",
+        [key, value]
+      );
+    }
+    res.json({ success: true });
+  }));
+
   app.post("/api/admin/chat/clear", authenticateToken, isAdmin, async (req: any, res) => {
-    console.log(`Admin ${req.user.id} clearing chat`);
-    await pool.query("DELETE FROM chats");
-    await pool.query("INSERT INTO admin_logs (admin_id, action, details) VALUES ($1, $2, $3)", 
-      [req.user.id, 'clear_chat', 'Cleared all global chat messages']);
-    io.emit("chat_cleared");
     res.json({ success: true });
   });
 
@@ -742,54 +646,9 @@ async function startServer() {
     res.json({ success: true });
   }));
 
-  // Socket.io for Chat
+  // Socket.io removed
   io.on("connection", (socket) => {
-    socket.on("send_message", async (data) => {
-      const { userId, message } = data;
-      try {
-        const result = await pool.query(
-          "INSERT INTO chats (user_id, message) VALUES ($1, $2) RETURNING id, created_at",
-          [userId, message]
-        );
-        
-        let userName = 'Usuario';
-        let userRole = 'normal';
-
-        if (userId === 0) {
-          userName = 'Fumiko';
-          userRole = 'admin';
-        } else {
-          const userResult = await pool.query("SELECT name, role FROM users WHERE id = $1", [userId]);
-          if (userResult.rows[0]) {
-            userName = userResult.rows[0].name;
-            userRole = userResult.rows[0].role;
-          }
-        }
-
-        const fullMessage = {
-          id: result.rows[0].id,
-          user_id: userId,
-          message,
-          created_at: result.rows[0].created_at,
-          user_name: userName,
-          user_role: userRole
-        };
-        io.emit("receive_message", fullMessage);
-      } catch (err) {
-        console.error(err);
-      }
-    });
-
-    socket.on("delete_message", async (messageId) => {
-      // In a real app, verify admin role via socket handshake/auth
-      await pool.query("DELETE FROM chats WHERE id = $1", [messageId]);
-      io.emit("message_deleted", messageId);
-    });
-
-    socket.on("clear_chat", async () => {
-      await pool.query("DELETE FROM chats");
-      io.emit("chat_cleared");
-    });
+    // Chat functionality removed
   });
 
   // Ensure all other /api routes return 404 JSON
